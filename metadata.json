@@ -1,0 +1,6 @@
+{
+  "name": "脆皮大学生：逆风如解",
+  "description": "一款校园心态模拟竞速解谜小游戏，结合大学生脆皮体质、限时谜题、动态逆风惩罚与摸鱼自救翻盘机制，稳住心态冲破高压！",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
