@@ -178,18 +178,18 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 select-none text-black" style={{backgroundImage:'radial-gradient(#262626 1px, transparent 1px)', backgroundSize:'24px 24px'}}>
+    <div className="min-h-screen bg-slate-800 flex items-center justify-center p-4 select-none text-black" style={{backgroundImage:'radial-gradient(#334155 1px, transparent 1px)', backgroundSize:'24px 24px'}}>
 
-      <div className="w-full max-w-md bg-stone-50 border-[6px] border-black shadow-[12px_12px_0px_#000000] rounded-none relative overflow-hidden flex flex-col min-h-[92vh] sm:min-h-[780px] justify-between font-sans transition-all duration-300">
+      <div className="w-full max-w-md bg-[#faf8f5] border-[6px] border-slate-800 shadow-[12px_12px_0px_#1e293b] rounded-none relative overflow-hidden flex flex-col min-h-[92vh] sm:min-h-[780px] justify-between font-sans transition-all duration-300">
 
         {/* ── CRISP OS Header ── */}
-        <div className="bg-black text-white px-4 py-1.5 flex justify-between items-center text-[10px] tracking-widest font-mono select-none uppercase border-b-2 border-black shrink-0">
+        <div className="bg-gradient-to-r from-slate-800 to-slate-700 text-white px-4 py-1.5 flex justify-between items-center text-[10px] tracking-widest font-mono select-none uppercase border-b-2 border-slate-600 shrink-0">
           <div className="flex items-center gap-2 font-bold">
-            <span className="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
-            <span className="text-red-500 font-black">CRISP OS v1.6</span>
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+            <span className="text-rose-400 font-black">CRISP OS v1.6</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-zinc-400">5G ★</span>
+            <span className="text-slate-400">5G ★</span>
           </div>
         </div>
 
@@ -243,6 +243,7 @@ export default function App() {
                   onWin={handleWinLevel}
                   onLose={handleLoseLevel}
                   onBack={handleExitCurrentLevel}
+                  onRestart={restartCurrentLevel}
                 />
               )}
 

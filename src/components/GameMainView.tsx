@@ -9,11 +9,10 @@ import { Level, Talent, GameStats, StressRecord } from '../types';
 import {
   generate4x4SudokuPuzzle, FUNNY_QUOTES, SudokuCell,
   PIPE_PUZZLES, PipeCell, PipeType,
-  ONE_STROKE_PUZZLES, OneStrokePuzzle, StrokeNode, StrokeEdge,
   MEMORY_PAIRS, MemoryPair,
 } from '../data';
-import { 
-  AlertOctagon, AlertTriangle, ShieldCheck, Play, Pause, RefreshCw, Undo2, Coffee, Eye, Radio, BellRing, Skull, ArrowLeft
+import {
+  AlertOctagon, AlertTriangle, ShieldCheck, Play, Pause, RefreshCw, Undo2, Coffee, Eye, Radio, BellRing, Skull, ArrowLeft, Lightbulb, RotateCcw
 } from 'lucide-react';
 
 interface GameMainViewProps {
@@ -22,9 +21,10 @@ interface GameMainViewProps {
   onWin: (stats: GameStats) => void;
   onLose: (stats: GameStats, reason: 'TIMEOUT' | 'STRESS_CRASH') => void;
   onBack: () => void;
+  onRestart: () => void;
 }
 
-export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainViewProps) {
+export function GameMainView({ level, talent, onWin, onLose, onBack, onRestart }: GameMainViewProps) {
   // ----------------------------------------------------
   // Configuration offsets from active Talents
   // ----------------------------------------------------
@@ -48,6 +48,9 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   const [triggeredSurprisesCount, setTriggeredSurprisesCount] = useState<number>(0);
   const [surpriseSuccesses, setSurpriseSuccesses] = useState<number>(0);
   const [consecutiveCorrect, setConsecutiveCorrect] = useState<number>(0);
+  const [hintsUsed, setHintsUsed] = useState<number>(0);
+  const [showHint, setShowHint] = useState<boolean>(false);
+  const [hintTarget, setHintTarget] = useState<number | null>(null);
 
   // Time tracker
   const [timeElapsed, setTimeElapsed] = useState<number>(0);
@@ -97,11 +100,14 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   const pipeWinTriggeredRef = useRef<boolean>(false);
 
   // ----------------------------------------------------
-  // One-Stroke State (Level 5)
+  // Color Sequence State (Level 5)
   // ----------------------------------------------------
-  const [oneStrokePuzzle, setOneStrokePuzzle] = useState<OneStrokePuzzle>(ONE_STROKE_PUZZLES[0]);
-  const [strokePath, setStrokePath] = useState<number[]>([]); // node ids visited
-  const [strokeVisitedEdges, setStrokeVisitedEdges] = useState<Set<string>>(new Set());
+  const [colorSequence, setColorSequence] = useState<number[]>([]);
+  const [colorPlayerInput, setColorPlayerInput] = useState<number[]>([]);
+  const [colorRound, setColorRound] = useState<number>(0);
+  const [colorShowingIdx, setColorShowingIdx] = useState<number>(-1);
+  const [colorPhase, setColorPhase] = useState<'showing' | 'input' | 'feedback'>('showing');
+  const [colorFeedback, setColorFeedback] = useState<'correct' | 'wrong' | null>(null);
 
   // ----------------------------------------------------
   // Memory Match State (Level 6)
@@ -157,10 +163,14 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
       const powered = getPipePoweredIndices(cells, rotations);
       setPipePoweredIdxs([...powered]);
     } else if (level.id === 5) {
-      // Initialize one-stroke puzzle
-      setOneStrokePuzzle(generateOneStrokePuzzle());
-      setStrokePath([]);
-      setStrokeVisitedEdges(new Set());
+      // Initialize color sequence game
+      const initialSeq = [Math.floor(Math.random() * 4)];
+      setColorSequence(initialSeq);
+      setColorPlayerInput([]);
+      setColorRound(0);
+      setColorShowingIdx(-1);
+      setColorPhase('showing');
+      setColorFeedback(null);
     } else if (level.id === 6) {
       // Initialize memory match — create shuffled card deck
       const pairs = MEMORY_PAIRS.slice(0, 8);
@@ -1047,181 +1057,192 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   };
 
   // ----------------------------------------------------
-  // Level 5: One-Stroke Drawing Helpers
+  // Level 5: Color Sequence Memory Helpers
   // ----------------------------------------------------
-  const puzzle5 = oneStrokePuzzle;
-  const puzzle5OddNodes = (() => {
-    const degreeByNode = new Map<number, number>();
-    for (const [a, b] of puzzle5.edges) {
-      degreeByNode.set(a, (degreeByNode.get(a) ?? 0) + 1);
-      degreeByNode.set(b, (degreeByNode.get(b) ?? 0) + 1);
-    }
-    return Array.from(degreeByNode.entries())
-      .filter(([, deg]) => deg % 2 === 1)
-      .map(([nodeId]) => nodeId);
-  })();
+  const COLOR_SEQUENCE_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#eab308'] as const;
+  const COLOR_SEQUENCE_NAMES = ['红', '蓝', '绿', '黄'] as const;
+  const COLOR_SEQUENCE_TARGET_ROUNDS = 8;
 
-  const generateOneStrokePuzzle = (): OneStrokePuzzle => {
-    const base = ONE_STROKE_PUZZLES[0];
-    const nodes = base.nodes.map((n) => ({ ...n }));
-    const nodeIds = nodes.map((n) => n.id);
-    const allPairs: StrokeEdge[] = [];
-    for (let i = 0; i < nodeIds.length; i++) {
-      for (let j = i + 1; j < nodeIds.length; j++) {
-        allPairs.push([nodeIds[i], nodeIds[j]]);
-      }
-    }
-
-    const keyOf = (a: number, b: number) => `${Math.min(a, b)}-${Math.max(a, b)}`;
-
-    const buildEulerTrail = (edges: StrokeEdge[]): number[] | null => {
-      const adj = new Map<number, number[]>();
-      for (const id of nodeIds) adj.set(id, []);
-      for (const [a, b] of edges) {
-        adj.get(a)!.push(b);
-        adj.get(b)!.push(a);
-      }
-
-      const degrees = nodeIds.map((id) => adj.get(id)!.length);
-      const odd = nodeIds.filter((id, i) => degrees[i] % 2 === 1);
-      if (!(odd.length === 0 || odd.length === 2)) return null;
-      if (degrees.some((d) => d === 0)) return null;
-
-      const visited = new Set<number>();
-      const queue: number[] = [nodeIds[0]];
-      visited.add(nodeIds[0]);
-      while (queue.length > 0) {
-        const v = queue.shift()!;
-        for (const n of adj.get(v)!) {
-          if (visited.has(n)) continue;
-          visited.add(n);
-          queue.push(n);
-        }
-      }
-      if (visited.size !== nodeIds.length) return null;
-
-      const start = odd.length === 2 ? odd[0] : nodeIds[0];
-      const workAdj = new Map<number, number[]>();
-      for (const id of nodeIds) workAdj.set(id, [...adj.get(id)!]);
-
-      const stack: number[] = [start];
-      const out: number[] = [];
-
-      while (stack.length > 0) {
-        const v = stack[stack.length - 1];
-        const list = workAdj.get(v)!;
-        if (list.length === 0) {
-          out.push(v);
-          stack.pop();
-          continue;
-        }
-        const u = list.pop()!;
-        const backList = workAdj.get(u)!;
-        const idx = backList.lastIndexOf(v);
-        if (idx >= 0) backList.splice(idx, 1);
-        stack.push(u);
-      }
-
-      const trail = out.reverse();
-      if (trail.length !== edges.length + 1) return null;
-      return trail;
-    };
-
-    for (let attempt = 0; attempt < 200; attempt++) {
-      const desiredEdges = 7 + Math.floor(Math.random() * 3);
-
-      const edgeKeys = new Set<string>();
-      const edges: StrokeEdge[] = [];
-
-      const connected: number[] = [nodeIds[Math.floor(Math.random() * nodeIds.length)]];
-      const remaining = nodeIds.filter((id) => id !== connected[0]);
-      while (remaining.length > 0) {
-        const u = connected[Math.floor(Math.random() * connected.length)];
-        const v = remaining[Math.floor(Math.random() * remaining.length)];
-        edgeKeys.add(keyOf(u, v));
-        edges.push([u, v]);
-        connected.push(v);
-        remaining.splice(remaining.indexOf(v), 1);
-      }
-
-      const candidates = shuffle(allPairs).filter(([a, b]) => !edgeKeys.has(keyOf(a, b)));
-      for (const [a, b] of candidates) {
-        if (edges.length >= desiredEdges) break;
-        edgeKeys.add(keyOf(a, b));
-        edges.push([a, b]);
-      }
-
-      const solution = buildEulerTrail(edges);
-      if (!solution) continue;
-
-      return { nodes, edges, solution };
-    }
-
-    return base;
-  };
-
-  const handleStrokeNodeClick = (nodeId: number) => {
+  // Show the sequence when round changes or phase becomes 'showing'
+  useEffect(() => {
+    if (level.id !== 5) return;
+    if (colorPhase !== 'showing') return;
     if (isPaused || isSlacking || showSurprise) return;
 
-    if (strokePath.length === 0) {
-      if (puzzle5OddNodes.length === 2 && !puzzle5OddNodes.includes(nodeId)) {
-        setIsVisualFeedback('WRONG');
-        return;
+    let idx = 0;
+    setColorShowingIdx(-1);
+
+    const showTimer = setInterval(() => {
+      if (idx < colorSequence.length) {
+        setColorShowingIdx(colorSequence[idx]);
+        setTimeout(() => setColorShowingIdx(-1), 400);
+        idx++;
+      } else {
+        clearInterval(showTimer);
+        setColorShowingIdx(-1);
+        setColorPhase('input');
+        setColorPlayerInput([]);
       }
-      // Start the path
-      setStrokePath([nodeId]);
+    }, 600);
+
+    return () => clearInterval(showTimer);
+  }, [level.id, colorPhase, colorSequence, isPaused, isSlacking, showSurprise]);
+
+  const handleColorButtonClick = (colorIdx: number) => {
+    if (isPaused || isSlacking || showSurprise) return;
+    if (colorPhase !== 'input') return;
+
+    const newInput = [...colorPlayerInput, colorIdx];
+    setColorPlayerInput(newInput);
+
+    const currentStep = newInput.length - 1;
+    if (newInput[currentStep] !== colorSequence[currentStep]) {
+      // Wrong!
+      setColorFeedback('wrong');
+      setColorPhase('feedback');
+      setErrorsMade((prev) => prev + 1);
+      setConsecutiveCorrect(0);
+
+      const penaltyMultiplier = talent ? talent.stressPenaltyMultiplier : 1.0;
+      adjustStressValue(Math.round(15 * penaltyMultiplier));
+
+      let timeDeduction = 5;
+      if (stress > 40) timeDeduction = 7;
+      if (stress > 70) timeDeduction = 10;
+      setRemainingTime((prev) => Math.max(0, prev - timeDeduction));
+
+      setFloatingQuote(`❌ 顺序错了！时间扣减 ${timeDeduction}秒！\n${FUNNY_QUOTES[Math.floor(Math.random() * FUNNY_QUOTES.length)]}`);
+
+      // After showing feedback, replay same round
+      setTimeout(() => {
+        setColorFeedback(null);
+        setColorPhase('showing');
+        setColorPlayerInput([]);
+      }, 1200);
       return;
     }
 
-    const lastNode = strokePath[strokePath.length - 1];
-    if (nodeId === lastNode) return;
+    // Correct step
+    adjustStressValue(-3);
 
-    // Check if there's an edge between lastNode and nodeId
-    const edgeKey = makeEdgeKey(lastNode, nodeId);
-    const edgeExists = puzzle5.edges.some(([a, b]) => makeEdgeKey(a, b) === edgeKey);
-    if (!edgeExists) return;
+    if (newInput.length === colorSequence.length) {
+      // Completed this round!
+      const newRound = colorRound + 1;
+      setConsecutiveCorrect((prev) => prev + 1);
 
-    // Check if edge already visited
-    if (strokeVisitedEdges.has(edgeKey)) return;
+      if (newRound >= COLOR_SEQUENCE_TARGET_ROUNDS) {
+        // Win!
+        setColorFeedback('correct');
+        setTimeout(() => handleWinConclusion(), 500);
+        return;
+      }
 
-    const newVisited = new Set(strokeVisitedEdges);
-    newVisited.add(edgeKey);
-    const newPath = [...strokePath, nodeId];
+      // Add next color to sequence
+      const nextColor = Math.floor(Math.random() * 4);
+      const newSeq = [...colorSequence, nextColor];
+      setColorFeedback('correct');
+      setColorPhase('feedback');
 
-    setStrokeVisitedEdges(newVisited);
-    setStrokePath(newPath);
-
-    // Check win: all edges visited
-    if (newVisited.size === puzzle5.edges.length) {
-      handleWinConclusion();
+      setTimeout(() => {
+        setColorSequence(newSeq);
+        setColorRound(newRound);
+        setColorFeedback(null);
+        setColorPhase('showing');
+        setColorPlayerInput([]);
+      }, 800);
     }
   };
 
-  const makeEdgeKey = (a: number, b: number): string => {
-    return `${Math.min(a, b)}-${Math.max(a, b)}`;
+  const handleColorSequenceReset = () => {
+    if (isPaused || isSlacking || showSurprise) return;
+    const initialSeq = [Math.floor(Math.random() * 4)];
+    setColorSequence(initialSeq);
+    setColorPlayerInput([]);
+    setColorRound(0);
+    setColorShowingIdx(-1);
+    setColorPhase('showing');
+    setColorFeedback(null);
   };
 
-  const handleStrokeReset = () => {
-    if (isPaused || isSlacking || showSurprise) return;
-    setStrokePath([]);
-    setStrokeVisitedEdges(new Set());
-  };
+  // ----------------------------------------------------
+  // Hint System (all levels)
+  // ----------------------------------------------------
+  const handleUseHint = () => {
+    if (isPaused || isSlacking || showSurprise || showHint) return;
 
-  const handleStrokeUndo = () => {
-    if (isPaused || isSlacking || showSurprise) return;
+    let timeDeduction = 5;
+    if (level.id === 2) timeDeduction = 8;
 
-    setStrokePath((prevPath) => {
-      if (prevPath.length < 2) return prevPath;
-      const last = prevPath[prevPath.length - 1];
-      const prev = prevPath[prevPath.length - 2];
-      const edgeKey = makeEdgeKey(last, prev);
-      setStrokeVisitedEdges((prevEdges) => {
-        const nextEdges = new Set(prevEdges);
-        nextEdges.delete(edgeKey);
-        return nextEdges;
-      });
-      return prevPath.slice(0, -1);
-    });
+    setRemainingTime((prev) => Math.max(0, prev - timeDeduction));
+    adjustStressValue(10);
+    setHintsUsed((prev) => prev + 1);
+    setShowHint(true);
+
+    if (level.id === 1) {
+      // Highlight the next number to click
+      setHintTarget(schulteNext);
+      setTimeout(() => { setShowHint(false); setHintTarget(null); }, 2000);
+    } else if (level.id === 2) {
+      // Fill in one correct empty cell
+      const emptyCells = sudokuCells
+        .map((c, i) => ({ ...c, idx: i }))
+        .filter((c) => !c.starting && c.val !== sudokuSolution[c.row][c.col]);
+      if (emptyCells.length > 0) {
+        const pick = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        const newCells = [...sudokuCells];
+        newCells[pick.idx] = { ...newCells[pick.idx], val: sudokuSolution[pick.row][pick.col] };
+        setSudokuCells(newCells);
+        setSudokuErrorIdxs((prev) => prev.filter((i) => i !== pick.idx));
+        setHintTarget(pick.idx);
+        checkSudokuVictory(newCells);
+      }
+      setTimeout(() => { setShowHint(false); setHintTarget(null); }, 2000);
+    } else if (level.id === 3) {
+      // Highlight movable tiles
+      const emptyIdx = slideBoard.indexOf(0);
+      const row = Math.floor(emptyIdx / 3);
+      const col = emptyIdx % 3;
+      const movable: number[] = [];
+      if (row > 0) movable.push(emptyIdx - 3);
+      if (row < 2) movable.push(emptyIdx + 3);
+      if (col > 0) movable.push(emptyIdx - 1);
+      if (col < 2) movable.push(emptyIdx + 1);
+      if (movable.length > 0) setHintTarget(movable[0]);
+      setTimeout(() => { setShowHint(false); setHintTarget(null); }, 2000);
+    } else if (level.id === 4) {
+      // Highlight a pipe that needs rotation
+      for (let idx = 0; idx < pipeCells.length; idx++) {
+        if (pipeCells[idx].type === 'empty') continue;
+        if (pipeRotations[idx] !== pipeCells[idx].solvedRotation) {
+          setHintTarget(idx);
+          break;
+        }
+      }
+      setTimeout(() => { setShowHint(false); setHintTarget(null); }, 2000);
+    } else if (level.id === 5) {
+      // Flash the next color in the sequence
+      if (colorPhase === 'input' && colorPlayerInput.length < colorSequence.length) {
+        const nextColor = colorSequence[colorPlayerInput.length];
+        setColorShowingIdx(nextColor);
+        setTimeout(() => { setColorShowingIdx(-1); setShowHint(false); }, 1500);
+      } else {
+        setShowHint(false);
+      }
+    } else if (level.id === 6) {
+      // Show a matching pair
+      const unmatched = memoryCards.filter((c) => !c.matched && !c.faceUp);
+      if (unmatched.length >= 2) {
+        const pairIds = [...new Set(unmatched.map((c) => c.pairId))];
+        const pickPairId = pairIds[Math.floor(Math.random() * pairIds.length)];
+        const pairCards = unmatched.filter((c) => c.pairId === pickPairId);
+        if (pairCards.length >= 2) {
+          setHintTarget(memoryCards.indexOf(pairCards[0]));
+        }
+      }
+      setTimeout(() => { setShowHint(false); setHintTarget(null); }, 2000);
+    }
+
+    setFloatingQuote(`💡 使用了提示！时间 -${timeDeduction}s，逆风值 +10%`);
   };
 
   // ----------------------------------------------------
@@ -1389,7 +1410,7 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
           )}
           {level.id === 5 && (
             <p className="text-[11px] font-mono text-neutral-500 flex items-center justify-center gap-1.5 mb-2">
-              <span>✏️ 依次点击节点走遍所有连线</span>
+              <span>🧠 观察颜色闪烁顺序，按相同顺序点击</span>
             </p>
           )}
           {level.id === 6 && (
@@ -1429,7 +1450,8 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
                       whileTap={{ scale: isClicked ? 1 : 0.92 }}
                       className={`aspect-square flex items-center justify-center font-mono font-bold text-base md:text-lg transition-all duration-150 rounded-none border-2 border-black
                         ${isClicked ? 'bg-neutral-300 text-neutral-500 border-neutral-400 line-through cursor-not-allowed' : 'bg-white text-black active:bg-black active:text-white cursor-pointer hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)]'}
-                        ${blurClass} ${isSevere && !isClicked ? 'border-red-600 shadow-[1px_1px_0px_#dc2626]' : ''}`}
+                        ${blurClass} ${isSevere && !isClicked ? 'border-red-600 shadow-[1px_1px_0px_#dc2626]' : ''}
+                        ${showHint && hintTarget === num && !isClicked ? 'ring-4 ring-yellow-400 ring-offset-2 bg-yellow-100 border-yellow-500 animate-bounce' : ''}`}
                     >
                       {isClicked ? '✓' : isHidden ? <span className="text-neutral-200">?</span> : isCorrupted ? <span className="text-red-600 font-extrabold animate-pulse">{['☠','Ø','⊗','⏾','☣','◆'][num % 6]}</span> : num}
                     </motion.button>
@@ -1538,7 +1560,8 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
                         ${isEmpty
                           ? 'bg-neutral-200 text-neutral-400 border-neutral-300 cursor-not-allowed'
                           : 'bg-white text-black active:bg-black active:text-white cursor-pointer hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)]'
-                        }`}
+                        }
+                        ${showHint && hintTarget === idx && !isEmpty ? 'ring-4 ring-yellow-400 ring-offset-2 bg-yellow-100 border-yellow-500 animate-bounce' : ''}`}
                     >
                       {isEmpty ? '' : isExtremityBlind ? '?' : val}
                     </motion.button>
@@ -1591,7 +1614,7 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
                       onClick={() => handlePipeClick(idx)}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.92 }}
-                      className={`relative aspect-square flex items-center justify-center border-2 rounded-none font-mono font-black cursor-pointer text-xl md:text-2xl transition-all text-black active:bg-black active:text-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)] ${bgClass} ${borderClass}`}
+                      className={`relative aspect-square flex items-center justify-center border-2 rounded-none font-mono font-black cursor-pointer text-xl md:text-2xl transition-all text-black active:bg-black active:text-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)] ${bgClass} ${borderClass} ${showHint && hintTarget === idx ? 'ring-4 ring-yellow-400 ring-offset-2 animate-bounce' : ''}`}
                       animate={{ rotate: rotation * 90 }}
                       transition={{ duration: 0.12, ease: 'easeOut' }}
                     >
@@ -1607,103 +1630,94 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
           );
         })()}
 
-        {/* ----------------- GAME SCREEN: LEVEL 5 ONE-STROKE ----------------- */}
-        {level.id === 5 && (
-          <div className="w-full max-w-sm mx-auto select-none mt-2">
-            <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
-              <span>✏️ 依次点击节点走遍所有连线</span>
-              <span className="text-neutral-500">剩余 {puzzle5.edges.length - strokeVisitedEdges.size} 条</span>
-            </div>
-            <div className={`relative w-full bg-neutral-100 border-4 border-black shadow-[4px_4px_0px_#000000] p-2 transition-all duration-300 ${getGridDistortionClass()}`} style={{ aspectRatio: '1/0.75' }}>
-              {/* Draw edges as SVG lines */}
-              <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }}>
-                {puzzle5.edges.map(([a, b], i) => {
-                  const nodeA = puzzle5.nodes.find((n) => n.id === a)!;
-                  const nodeB = puzzle5.nodes.find((n) => n.id === b)!;
-                  const key = makeEdgeKey(a, b);
-                  const visited = strokeVisitedEdges.has(key);
-                  return (
-                    <line
-                      key={i}
-                      x1={`${nodeA.x}%`}
-                      y1={`${nodeA.y}%`}
-                      x2={`${nodeB.x}%`}
-                      y2={`${nodeB.y}%`}
-                      stroke={visited ? '#22c55e' : '#aaa'}
-                      strokeWidth={visited ? 4 : 2}
-                      strokeLinecap="round"
-                    />
-                  );
-                })}
-                {/* Draw path so far */}
-                {strokePath.length > 1 && strokePath.slice(0, -1).map((nodeId, i) => {
-                  const from = puzzle5.nodes.find((n) => n.id === strokePath[i])!;
-                  const to = puzzle5.nodes.find((n) => n.id === strokePath[i + 1])!;
-                  return (
-                    <line
-                      key={`path-${i}`}
-                      x1={`${from.x}%`}
-                      y1={`${from.y}%`}
-                      x2={`${to.x}%`}
-                      y2={`${to.y}%`}
-                      stroke="#ef4444"
-                      strokeWidth={3}
-                      strokeLinecap="round"
-                      opacity={0.8}
-                    />
-                  );
-                })}
-              </svg>
+        {/* ----------------- GAME SCREEN: LEVEL 5 COLOR SEQUENCE ----------------- */}
+        {level.id === 5 && (() => {
+          const isSlight = stress > 20 && stress <= 40;
+          const isMedium = stress > 40 && stress <= 70;
+          const isSevere = stress > 70;
+          const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
 
-              {/* Draw nodes */}
-              {puzzle5.nodes.map((node) => {
-                const isInPath = strokePath.includes(node.id);
-                const isCurrentHead = strokePath.length > 0 && strokePath[strokePath.length - 1] === node.id;
-                const isExtremityBlind = stress > 75 && Math.random() < 0.15;
+          return (
+            <div className="w-full max-w-xs mx-auto select-none mt-2">
+              <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
+                <span>🧠 背下颜色顺序</span>
+                <span className="text-neutral-500">第 {colorRound + 1} / {COLOR_SEQUENCE_TARGET_ROUNDS} 轮</span>
+              </div>
 
-                return (
-                  <motion.button
-                    key={node.id}
-                    onClick={() => handleStrokeNodeClick(node.id)}
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="absolute w-10 h-10 md:w-12 md:h-12 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center font-mono font-black text-sm border-2 border-black cursor-pointer transition-all z-10"
-                    style={{
-                      left: `${node.x}%`,
-                      top: `${node.y}%`,
-                      backgroundColor: isCurrentHead ? '#ef4444' : isInPath ? '#22c55e' : '#fff',
-                      borderColor: '#000',
-                      color: isCurrentHead || isInPath ? '#000' : '#000',
-                    }}
-                  >
-                    {isExtremityBlind ? '?' : node.id}
-                  </motion.button>
-                );
-              })}
-            </div>
-            {/* Undo/Reset buttons */}
-            {strokePath.length > 0 && (
-              <div className="flex items-center justify-center gap-3 mt-2">
-                {strokePath.length > 1 && (
-                  <button
-                    id="btn-stroke-undo"
-                    onClick={handleStrokeUndo}
-                    className="text-[10px] font-mono text-neutral-500 hover:text-black cursor-pointer underline inline-flex items-center gap-1"
-                  >
-                    ↩ 撤回
-                  </button>
+              {/* Status text */}
+              <div className="text-center mb-3">
+                {colorPhase === 'showing' && (
+                  <p className="text-[11px] font-mono text-blue-600 animate-pulse font-bold">👀 注意观察闪烁顺序...</p>
                 )}
+                {colorPhase === 'input' && (
+                  <p className="text-[11px] font-mono text-emerald-600 font-bold">🎮 轮到你了！按顺序点击 ({colorPlayerInput.length}/{colorSequence.length})</p>
+                )}
+                {colorPhase === 'feedback' && colorFeedback === 'correct' && (
+                  <p className="text-[11px] font-mono text-emerald-600 font-bold">✅ 正确！继续...</p>
+                )}
+                {colorPhase === 'feedback' && colorFeedback === 'wrong' && (
+                  <p className="text-[11px] font-mono text-red-600 font-bold animate-pulse">❌ 顺序错了！重新来...</p>
+                )}
+              </div>
+
+              {/* Sequence progress dots */}
+              <div className="flex justify-center gap-1 mb-3">
+                {colorSequence.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-2 h-2 rounded-full border border-black transition-all ${
+                      i < colorPlayerInput.length
+                        ? 'bg-emerald-500'
+                        : i === colorPlayerInput.length && colorPhase === 'input'
+                        ? 'bg-yellow-400 animate-pulse'
+                        : 'bg-neutral-300'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {/* Color buttons */}
+              <div className={`grid grid-cols-2 gap-3 p-3 bg-neutral-100 border-4 border-black shadow-[4px_4px_0px_#000000] transition-all duration-300 ${shakeClass}`}>
+                {COLOR_SEQUENCE_COLORS.map((color, idx) => {
+                  const isShowing = colorShowingIdx === idx;
+                  const isHintHighlight = showHint && hintTarget === idx && level.id === 5;
+
+                  return (
+                    <motion.button
+                      key={idx}
+                      onClick={() => handleColorButtonClick(idx)}
+                      whileHover={{ scale: colorPhase === 'input' ? 1.05 : 1 }}
+                      whileTap={{ scale: colorPhase === 'input' ? 0.92 : 1 }}
+                      className={`aspect-square rounded-lg border-4 border-black font-mono font-black text-lg transition-all duration-150 cursor-pointer shadow-[3px_3px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none ${
+                        colorPhase !== 'input' ? 'opacity-70 cursor-not-allowed' : ''
+                      }`}
+                      style={{
+                        backgroundColor: isShowing || isHintHighlight ? color : `${color}40`,
+                        color: isShowing || isHintHighlight ? '#fff' : color,
+                        borderColor: isShowing || isHintHighlight ? '#000' : color,
+                        transform: isShowing ? 'scale(1.08)' : undefined,
+                      }}
+                    >
+                      {COLOR_SEQUENCE_NAMES[idx]}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Reset button */}
+              <div className="flex justify-center mt-2">
                 <button
-                  onClick={handleStrokeReset}
+                  onClick={handleColorSequenceReset}
                   className="text-[10px] font-mono text-red-500 hover:text-red-400 cursor-pointer underline"
                 >
-                  ↩ 重置路径
+                  ↩ 重新开始
                 </button>
               </div>
-            )}
-            {stress > 70 && <div className="text-center text-[10px] text-red-600 font-mono tracking-tight font-black mt-4 animate-bounce">▲ ⚠️ 脑压暴载！节点剧烈晃动！ ▲</div>}
-          </div>
-        )}
+
+              {isSevere && <div className="text-center text-[10px] text-red-600 font-mono tracking-tight font-black mt-4 animate-bounce">▲ ⚠️ 脑压暴载！记忆严重受损！ ▲</div>}
+            </div>
+          );
+        })()}
 
         {/* ----------------- GAME SCREEN: LEVEL 6 MEMORY MATCH ----------------- */}
         {level.id === 6 && (() => {
@@ -1733,7 +1747,8 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
                           : card.faceUp
                           ? 'bg-white border-red-400 text-black'
                           : 'bg-white text-black active:bg-black active:text-white cursor-pointer hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)]'
-                        }`}
+                        }
+                        ${showHint && hintTarget === idx && !card.matched && !card.faceUp ? 'ring-4 ring-yellow-400 ring-offset-2 bg-yellow-100 border-yellow-500 animate-bounce' : ''}`}
                     >
                       {card.faceUp || card.matched
                         ? isExtremityBlind ? '?' : card.emoji
@@ -1880,6 +1895,13 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
                     【 解锁续战 】
                   </button>
                   <button
+                    id="btn-play-pause-restart"
+                    onClick={() => { setIsPaused(false); onRestart(); }}
+                    className="w-full bg-amber-100 hover:bg-amber-200 border-2 border-black text-amber-900 font-mono font-bold py-2 text-[10px] rounded-none cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <RotateCcw size={12} /> 重新开始本关
+                  </button>
+                  <button
                     id="btn-play-pause-giveup"
                     onClick={onBack}
                     className="w-full bg-stone-200 hover:bg-stone-300 border border-neutral-400 text-zinc-700 font-mono font-medium py-2 text-[10px] rounded-none cursor-pointer transition-colors"
@@ -1895,33 +1917,29 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
       </div>
 
       {/* ----------------------------------------------------
-          BOTTOM CONTROLLER FOOTER: SLACK OFF SYSTEM
+          BOTTOM CONTROLLER FOOTER: ACTIONS BAR
           ---------------------------------------------------- */}
-      <div className="p-2.5 px-4 border-t-4 border-black bg-stone-200 flex justify-between items-center shadow-[0px_-2px_0px_rgba(0,0,0,1)] shrink-0">
+      <div className="p-2.5 px-3 border-t-4 border-black bg-stone-200 flex justify-between items-center shadow-[0px_-2px_0px_rgba(0,0,0,1)] shrink-0 gap-2">
 
-        {/* Combo indicators */}
-        <div className="text-[10px] font-mono text-zinc-600 shrink-0 leading-tight">
-          <span className="font-extrabold text-black block text-[10px]">[人格] {talent ? talent.name : '无'}</span>
-          <div className="flex gap-1 mt-0.5">
-            {[0, 1, 2].map((dotIdx) => {
-              const active = consecutiveCorrect > dotIdx;
-              const isComboProne = talent?.id === 'panic_prone';
-              return (
-                <div
-                  key={dotIdx}
-                  className={`w-2.5 h-2.5 rounded-sm border border-black ${
-                    active
-                      ? isComboProne
-                        ? 'bg-amber-500'
-                        : 'bg-black'
-                      : 'bg-transparent'
-                  }`}
-                />
-              );
-            })}
+        {/* Hint button */}
+        <motion.button
+          id="btn-use-hint"
+          disabled={isPaused || isSlacking || showSurprise || showHint}
+          onClick={handleUseHint}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={`h-[40px] px-2 font-mono font-black text-[10px] tracking-tight border-2 border-black flex items-center gap-1 transition-all duration-150 shadow-[2px_2px_0px_rgba(0,0,0,1)] ${
+            isPaused || isSlacking || showSurprise || showHint
+              ? 'bg-stone-100 text-stone-400 border-stone-300 shadow-none cursor-not-allowed'
+              : 'bg-blue-100 hover:bg-blue-200 text-blue-800 cursor-pointer active:translate-y-0.5 active:shadow-none'
+          }`}
+        >
+          <Lightbulb size={14} className="shrink-0" />
+          <div className="text-left leading-none select-none">
+            <span className="block font-black text-[9px]">提示</span>
+            <span className="text-[7px] font-normal leading-none block font-mono text-zinc-500">-时间</span>
           </div>
-          <span className="text-[7px] text-zinc-500 font-mono block">3连→ -30压力</span>
-        </div>
+        </motion.button>
 
         {/* Slack off button */}
         <motion.button
@@ -1930,7 +1948,7 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
           onClick={triggerSlackOff}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className={`h-[40px] px-3 font-mono font-black text-[11px] tracking-tight border-2 border-black flex items-center gap-1.5 transition-all duration-150 shadow-[2.5px_2.5px_0px_rgba(0,0,0,1)] ${
+          className={`h-[40px] px-2 font-mono font-black text-[10px] tracking-tight border-2 border-black flex items-center gap-1 transition-all duration-150 shadow-[2px_2px_0px_rgba(0,0,0,1)] ${
             isPaused || isSlacking || showSurprise
               ? 'bg-stone-100 text-stone-400 border-stone-300 shadow-none cursor-not-allowed'
               : 'bg-yellow-400 hover:bg-yellow-300 text-black cursor-pointer active:translate-y-0.5 active:shadow-none'
@@ -1938,8 +1956,28 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
         >
           <span className="shrink-0 text-amber-900">☕</span>
           <div className="text-left leading-none select-none">
-            <span className="block font-black text-[10px] font-display">【摸鱼自救】</span>
+            <span className="block font-black text-[9px]">【摸鱼自救】</span>
             <span className="text-[7px] font-normal leading-none block font-mono text-zinc-600">降压 / -15s</span>
+          </div>
+        </motion.button>
+
+        {/* Restart button */}
+        <motion.button
+          id="btn-restart-level"
+          disabled={isPaused || isSlacking || showSurprise}
+          onClick={onRestart}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={`h-[40px] px-2 font-mono font-black text-[10px] tracking-tight border-2 border-black flex items-center gap-1 transition-all duration-150 shadow-[2px_2px_0px_rgba(0,0,0,1)] ${
+            isPaused || isSlacking || showSurprise
+              ? 'bg-stone-100 text-stone-400 border-stone-300 shadow-none cursor-not-allowed'
+              : 'bg-stone-100 hover:bg-stone-200 text-stone-700 cursor-pointer active:translate-y-0.5 active:shadow-none'
+          }`}
+        >
+          <RotateCcw size={14} className="shrink-0" />
+          <div className="text-left leading-none select-none">
+            <span className="block font-black text-[9px]">重来</span>
+            <span className="text-[7px] font-normal leading-none block font-mono text-zinc-500">本关</span>
           </div>
         </motion.button>
 

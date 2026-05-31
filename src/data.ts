@@ -160,7 +160,7 @@ export const LEVELS: Level[] = [
     scenario: '导员拿着点名册走上讲台，你的名字在上面！集中注意力！',
     instructions: '按 1→25 顺序快速点击数字，点错扣时间。',
     rules: ['按 1、2、3…25 顺序点击数字', '点错 → 扣时间 + 逆风值上涨', '逆风值满100持续5秒 → 心态崩盘失败'],
-    baseTime: 40,
+    baseTime: 30,
     failureTragedy: '点名被抓！挂科一门，罚写3000字思想汇报。'
   },
   {
@@ -170,7 +170,7 @@ export const LEVELS: Level[] = [
     scenario: '导员发下测试纸，算入平时成绩30%！逻辑已经完全打结…',
     instructions: '填入1-4，使每行、每列、每个2×2宫数字不重复。',
     rules: ['点击空格 → 再点下方数字填入', '每行/每列/每宫 数字不可重复', '填错 → 扣时间 + 逆风值上涨'],
-    baseTime: 120,
+    baseTime: 80,
     failureTragedy: '交了大白卷！平时成绩扣光，成绩不合格。'
   },
   {
@@ -180,7 +180,7 @@ export const LEVELS: Level[] = [
     scenario: '宿管推门而入：”柜子乱成这样！5分钟内排好1-8，否则扣综测分！”',
     instructions: '点击空格旁的方块滑入空位，排列1-8。',
     rules: ['点击空格旁的数字 → 滑入空位', '目标：1到8从左到右、从上到下排列', '点错 → 扣时间 + 逆风值上涨'],
-    baseTime: 120,
+    baseTime: 80,
     failureTragedy: '柜子照片被发到辅导员群，通报批评，罚打扫厕所一个月。'
   },
   {
@@ -190,17 +190,17 @@ export const LEVELS: Level[] = [
     scenario: '电路板冒烟了！助教说：”把管道全部接通，否则实验课零分。”',
     instructions: '点击管道旋转，连通左右两侧入口出口。',
     rules: ['点击管道 → 旋转90°', '目标：从左侧入口到右侧出口全部连通', '连通的管道会发绿光'],
-    baseTime: 120,
+    baseTime: 80,
     failureTragedy: '电路板烧毁，半栋楼停电，赔偿3000元+重修实验课。'
   },
   {
     id: 5,
-    name: '一笔画挑战',
-    title: '第五关：选课系统崩溃前夜！',
-    scenario: '选课系统凌晨开放，必须一笔走完所有路径才能抢到课！',
-    instructions: '依次点击节点，一笔走遍所有连线。',
-    rules: ['点击节点开始画路径', '每条连线只能走一次', '走完所有连线即通关'],
-    baseTime: 120,
+    name: '颜色序列记忆',
+    title: '第五关：考前突击背公式！',
+    scenario: '明天期末考，公式全忘了！用颜色联想法把公式序列背下来！',
+    instructions: '观察颜色闪烁顺序，按相同顺序点击。',
+    rules: ['系统依次闪烁彩色按钮', '记住顺序后依次点击', '完成8轮即通关，点错扣时间'],
+    baseTime: 75,
     failureTragedy: '系统崩溃，只抢到”太极拳与养生”，后悔一学期。'
   },
   {
@@ -210,7 +210,7 @@ export const LEVELS: Level[] = [
     scenario: '明天期末考，公式全忘了！用翻牌配对法把公式找出来！',
     instructions: '每次翻两张，相同则配对成功，不同则翻回。',
     rules: ['点击翻开一张牌', '每次翻两张，相同则配对成功', '找出全部8对即通关'],
-    baseTime: 120,
+    baseTime: 75,
     failureTragedy: '考试脑子空白，对着试卷发呆90分钟，成绩17分。'
   }
 ];
