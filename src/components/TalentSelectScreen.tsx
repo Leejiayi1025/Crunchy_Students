@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Talent } from '../types';
 import { TALENTS } from '../data';
-import { Sparkles, ShoppingBag, EyeOff, ShieldCheck, RefreshCw } from 'lucide-react';
 
 interface TalentSelectProps {
   onSelect: (talent: Talent) => void;
@@ -17,122 +16,94 @@ export function TalentSelectScreen({ onSelect }: TalentSelectProps) {
   const [selectedId, setSelectedId] = useState<string>('');
   const [drawnTalents, setDrawnTalents] = useState<Talent[]>([]);
 
-  // Function to draw 3 random talents from TALENTS pool
   const drawTalents = () => {
     const shuffled = [...TALENTS].sort(() => 0.5 - Math.random());
     const drawn = shuffled.slice(0, 3);
     setDrawnTalents(drawn);
-    setSelectedId(drawn[0].id); // select first as default
+    setSelectedId(drawn[0].id);
   };
 
   useEffect(() => {
     drawTalents();
   }, []);
 
-  const handleDrawNew = () => {
-    drawTalents();
-  };
-
   const currentSelectedTalent = drawnTalents.find((t) => t.id === selectedId);
 
   return (
-    <div className="flex flex-col justify-between h-full bg-black text-white p-5 border-4 border-white rounded-lg select-none">
-      
+    <div className="flex-1 flex flex-col justify-between p-5 bg-stone-50 select-none">
+
       {/* Top Bar */}
-      <div>
-        <div className="flex items-center justify-between border-b border-neutral-800 pb-3 mb-4">
-          <span className="text-[10px] font-mono tracking-widest text-[#ef4444]">
-            [ STEP_02: INJECT FRAGILE DNA ]
-          </span>
+      <div className="pb-2 border-b-2 border-black">
+        <span className="text-[9px] tracking-widest font-mono text-neutral-500 block uppercase font-bold leading-none">[PHYSIQUE DIAGNOSIS / 人格特质干涉]</span>
+        <h2 className="text-xl font-display font-black text-black mt-1 flex justify-between items-center">
+          <span>抽取"脆皮天资"</span>
           <button
             id="btn-re-draw-talent"
-            onClick={handleDrawNew}
-            className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono hover:text-white transition-colors cursor-pointer border border-neutral-800 px-2 py-1 rounded"
+            onClick={drawTalents}
+            className="text-[9px] bg-red-100 text-red-600 font-mono px-2 py-0.5 border border-red-300 font-black animate-pulse rounded-sm cursor-pointer hover:bg-red-200 transition-colors"
           >
-            <RefreshCw className="w-3 h-3 hover:rotate-185 transition-transform duration-500" />
-            重洗牌 (Draw Again)
+            🎲 随机
           </button>
-        </div>
-
-        <h2 className="text-xl font-black text-neutral-100 flex items-center gap-1.5 leading-tight">
-          抽签你的「脆皮大学生」体质
         </h2>
-        <p className="text-xs text-neutral-400 font-sans mt-1.5 leading-relaxed">
-          大学生体虚不重要，重要的是心态！不同的脆皮体质将深刻绑定本场游戏的自平衡抗压表现与特殊规则：
-        </p>
       </div>
 
-      {/* Talent Cards Grid/Stack */}
-      <div className="my-auto py-4 space-y-3">
+      {/* Talent Cards */}
+      <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-1">
         {drawnTalents.map((talent) => {
-          const isSelected = talent.id === selectedId;
-
+          const isSel = talent.id === selectedId;
           return (
             <motion.div
               key={talent.id}
               onClick={() => setSelectedId(talent.id)}
-              whileHover={{ scale: isSelected ? 1 : 1.01 }}
-              className={`relative flex items-start gap-3.5 p-3.5 rounded border-2 transition-all cursor-pointer ${
-                isSelected
-                  ? 'bg-neutral-900 border-white shadow-[3px_3px_0px_#ef4444]'
-                  : 'bg-black border-neutral-800 hover:border-neutral-500 hover:bg-neutral-950'
+              whileHover={{ scale: isSel ? 1 : 1.01 }}
+              className={`w-full text-left p-3 border-2 transition-all duration-150 rounded-none relative flex gap-3 select-none cursor-pointer ${
+                isSel
+                  ? 'border-red-600 bg-white shadow-[4px_4px_0px_#000000] translate-x-0.5 translate-y-0.5'
+                  : 'border-neutral-300 bg-white hover:bg-neutral-50 shadow-[2px_2px_0px_rgba(0,0,0,0.15)] hover:border-black'
               }`}
             >
-              {/* Left Column Emoji/Aura */}
-              <div
-                className={`flex items-center justify-center w-11 h-11 text-2xl rounded border-2 p-1 ${
-                  isSelected ? 'bg-black border-red-500' : 'bg-neutral-950 border-neutral-800'
-                }`}
-              >
+              {isSel && <span className="absolute -top-2.5 right-2 bg-red-600 text-white font-mono text-[8px] font-black px-2 py-0.5 border border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] uppercase">SELECTED</span>}
+              <div className={`p-2 border-2 h-max flex items-center justify-center shrink-0 transition-colors duration-200 text-2xl ${
+                isSel ? 'bg-black text-white border-black' : 'bg-stone-100 border-neutral-300'
+              }`}>
                 {talent.emoji}
               </div>
-
-              {/* Right content info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[14px] font-black text-white font-mono flex items-center gap-1">
-                    {talent.name}
-                  </h3>
-                  {isSelected && (
-                    <span className="text-[9px] bg-red-600 text-black font-black uppercase px-1 py-0.5 rounded-sm">
-                      ACTIVE
-                    </span>
-                  )}
+                <h4 className="font-display font-black text-sm text-black tracking-tight mb-1">{talent.name}</h4>
+                <div className="text-[11px] font-mono leading-tight">
+                  <span className="text-emerald-700 font-bold">[加护]</span>{' '}
+                  <span className="text-stone-700 font-medium">{talent.bonusText}</span>
                 </div>
-                <p className="text-[11px] text-neutral-400 font-serif leading-relaxed mt-1">
-                  {talent.description}
-                </p>
               </div>
             </motion.div>
           );
         })}
       </div>
 
-      {/* Talent Details & Confirm Panel */}
-      {currentSelectedTalent && (
-        <div className="bg-neutral-950 border-2 border-dashed border-neutral-800 rounded p-4 mb-2">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-red-500 mb-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>【体质影响 · 逆向博弈加成】</span>
-          </div>
-          <p className="text-xs text-neutral-200 font-mono leading-relaxed bg-black/50 p-2 border border-neutral-900 rounded">
-            {currentSelectedTalent.bonusText}
-          </p>
-          <div className="mt-2 text-[10px] text-neutral-500 italic flex items-center gap-1">
-            <span>规则注：{currentSelectedTalent.specialRule}</span>
-          </div>
+      {/* Talent Details */}
+      {currentSelectedTalent?.specialRule && (
+        <div className="bg-neutral-100 border-2 border-black p-2.5 font-mono text-[10px] rounded-none mb-2">
+          <p className="text-neutral-700 font-medium leading-relaxed italic">"{currentSelectedTalent.specialRule}"</p>
         </div>
       )}
 
-      {/* Bottom Lock In */}
-      <div className="pt-3 border-t border-neutral-800 flex flex-col gap-2">
-        <button
+      {/* Bottom Confirm */}
+      <div className="pt-2 border-t border-dashed border-stone-300">
+        <motion.button
           id="btn-confirm-talent"
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => currentSelectedTalent && onSelect(currentSelectedTalent)}
-          className="w-full bg-white text-black font-black text-sm tracking-widest py-3 border-2 border-white hover:bg-neutral-900 hover:text-white transition-all cursor-pointer shadow-[3px_3px_0px_rgba(239, 68, 68, 0.9)]"
+          disabled={!currentSelectedTalent}
+          className={`w-full font-display font-black py-3.5 px-4 text-xs tracking-widest flex items-center justify-center gap-2 rounded-none transition-all duration-150
+            ${currentSelectedTalent
+              ? 'bg-black text-white hover:bg-neutral-900 shadow-[4px_4px_0px_#dc2626] cursor-pointer active:translate-y-0.5 active:shadow-none'
+              : 'bg-stone-200 text-stone-400 border border-stone-300 cursor-not-allowed'
+            }`}
         >
-          激活宿命体质 ➔
-        </button>
+          <span>确定特质 · 开启考核</span>
+          <span className="text-emerald-400">→</span>
+        </motion.button>
       </div>
 
     </div>

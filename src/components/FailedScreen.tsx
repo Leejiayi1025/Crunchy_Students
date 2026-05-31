@@ -5,9 +5,7 @@
 
 import { GameStats, Level } from '../types';
 import { TimelineChart } from './TimelineChart';
-import { RefreshCw, Skull, CalendarDays, HeartCrack } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useState, useEffect } from 'react';
 
 interface FailedScreenProps {
   stats: GameStats;
@@ -17,101 +15,62 @@ interface FailedScreenProps {
 }
 
 export function FailedScreen({ stats, level, failReason, onRestart }: FailedScreenProps) {
-  const [funnySigh, setFunnySigh] = useState('');
-
-  const sighs = [
-    '“发际线悄然退守，绩点随风而散，明天还是去买一缸生发剂吧。”',
-    '“室友开黑的大喊声传来，而你看着挂科单，默默捂上了被子…”',
-    '“导导发在群里的@提醒红得刺眼，犹如高悬的达摩克利斯之剑。”',
-    '“那一晚，微积分的微茫积分，再也凑不齐及格的起跑线…”',
-    '“既然逆风无法化解，那就只能期待下学期重修再聚首了。”',
-  ];
-
-  useEffect(() => {
-    const rIdx = Math.floor(Math.random() * sighs.length);
-    setFunnySigh(sighs[rIdx]);
-  }, []);
-
   return (
-    <div className="flex flex-col h-full bg-black text-white p-5 border-4 border-red-600 rounded-lg overflow-y-auto custom-scrollbar select-none">
-      
-      {/* Failure Title Header */}
-      <div className="text-center border-b border-neutral-900 pb-3 mb-4">
-        <motion.div
+    <div className="flex-1 flex flex-col justify-between p-5 text-black bg-red-50/50 select-none overflow-y-auto custom-scrollbar">
+
+      {/* Header */}
+      <div className="text-center pt-1">
+        <motion.span
           animate={{ scale: [0.95, 1.05, 0.95] }}
           transition={{ repeat: Infinity, duration: 1.5 }}
-          className="inline-block bg-red-600 text-black text-[10px] font-black uppercase px-2 py-0.5 tracking-widest rounded-sm mb-1.5"
+          className="inline-block bg-red-600 text-white text-[8px] font-mono tracking-wider px-2 py-0.5 border-2 border-black uppercase font-black shadow-[1.5px_1.5px_0px_#000]"
         >
-          [ WARNING: SYSTEM CRASHED ]
-        </motion.div>
-        
-        <h2 className="text-2xl font-black text-red-500 font-mono flex items-center justify-center gap-1.5 leading-none mt-1">
-          <Skull className="w-6 h-6 text-red-600" />
-          脆皮心态崩坏！
+          CRITICAL COLLAPSE / 抗压碎裂
+        </motion.span>
+        <h2 className="text-2xl font-display font-black tracking-tight text-red-600 leading-none mt-2">
+          <span>挂科警告！</span>
         </h2>
-        
-        <p className="text-[10px] text-neutral-500 font-mono mt-0.5">
-          STRESS THRESHOLD OVERLOAD // RETREAT FROM CLASSROOM
-        </p>
       </div>
 
-      {/* Failure dynamic story narration */}
-      <div className="bg-neutral-950 border border-neutral-900 rounded p-4 mb-4">
-        <div className="flex gap-2 text-red-400 font-bold items-center mb-2 text-xs">
-          <HeartCrack className="w-4 h-4" />
-          <span>惨烈宿命结局：</span>
+      {/* Failure Card */}
+      <div className="my-2.5 border-4 border-black p-3.5 bg-white shadow-[5px_5px_0px_rgba(0,0,0,1)] relative rounded-none">
+        <div className="absolute -top-3.5 left-4 bg-black text-white p-1.5 border border-black shadow-[1.5px_1.5px_0px_#ef4444]">
+          <span className="text-red-500 animate-spin inline-block">💀</span>
         </div>
-        
-        <h3 className="text-sm font-black text-white font-mono">
-          {failReason === 'TIMEOUT' ? '【DDL拖延症晚期 · 超时窒息】' : '【CPU当场烧灼 · 心态彻底融毁】'}
-        </h3>
-        
-        <p className="text-xs text-neutral-400 font-serif leading-relaxed mt-2 pl-1">
-          {level.failureTragedy}
-        </p>
-
-        <p className="text-[11px] text-neutral-500 font-serif italic mt-3 border-t border-neutral-900 pt-2.5">
-          {funnySigh}
-        </p>
+        <h4 className="text-xs font-mono font-black text-red-600 border-b border-stone-200 pb-1 mb-2 tracking-wider uppercase">☠ 崩溃因子</h4>
+        <div className="text-xs font-mono space-y-2 text-zinc-700 leading-relaxed">
+          <p><strong className="text-black">致命短板：</strong>
+            {failReason === 'TIMEOUT'
+              ? <span className="text-red-600 font-bold">DDL倒计时耗尽！</span>
+              : <span className="text-red-600 font-bold">脑压超载！5秒未调和！</span>
+            }
+          </p>
+          <p className="bg-red-50 text-red-700 p-2 italic text-[11px] border-l-4 border-red-600 leading-normal">
+            {level.failureTragedy}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5 mt-3 pt-2 border-t border-dashed border-stone-200 text-[10px] font-mono">
+          <div className="bg-stone-50 p-1.5 border border-stone-200"><span className="text-zinc-400 block text-[9px]">答错</span><span className="font-extrabold text-black">{stats.errorsMade}次</span></div>
+          <div className="bg-stone-50 p-1.5 border border-stone-200"><span className="text-zinc-400 block text-[9px]">摸鱼</span><span className="font-extrabold text-black">{stats.slackedOffCount}次</span></div>
+        </div>
       </div>
 
-      {/* Real Struggle timeline chart */}
-      <div className="mb-4">
+      {/* Timeline Chart */}
+      <div className="mb-3">
         <TimelineChart timeline={stats.timeline} maxStressThreshold={stats.maxStress} />
       </div>
 
-      {/* Numeric stats list */}
-      <div className="grid grid-cols-2 gap-2 text-xs font-mono mb-4">
-        <div className="bg-neutral-950 p-2.5 border border-neutral-900 rounded">
-          <span className="text-neutral-500 text-[10px] block">阵亡前失误:</span>
-          <span className="text-[#ef4444] font-black text-sm">{stats.errorsMade} 次</span>
-        </div>
-        <div className="bg-neutral-950 p-2.5 border border-neutral-900 rounded">
-          <span className="text-neutral-500 text-[10px] block">崩溃前最高压力:</span>
-          <span className="text-amber-500 font-black text-sm">{stats.maxStress}%</span>
-        </div>
-        <div className="bg-neutral-950 p-2.5 border border-neutral-900 rounded">
-          <span className="text-neutral-500 text-[10px] block">摸草摆烂次数:</span>
-          <span className="text-sky-400 font-black text-sm">{stats.slackedOffCount} 次</span>
-        </div>
-        <div className="bg-neutral-950 p-2.5 border border-neutral-900 rounded">
-          <span className="text-neutral-500 text-[10px] block">导导突击成功率:</span>
-          <span className="text-emerald-400 font-semibold text-sm">
-            {stats.surpriseSuccesses}/{stats.triggeredSurprisesCount}
-          </span>
-        </div>
-      </div>
-
-      {/* Action buttons */}
-      <div className="mt-auto pt-3 border-t border-neutral-800">
-        <button
+      {/* Action Buttons */}
+      <div className="space-y-2">
+        <motion.button
           id="btn-play-level-fail-retry"
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
           onClick={onRestart}
-          className="w-full flex items-center justify-center gap-1.5 p-3 bg-red-600 border-2 border-red-600 text-black font-mono font-black text-xs hover:bg-black hover:text-red-500 hover:border-red-500 transition-all cursor-pointer shadow-[3px_3px_0px_#ffffff]"
+          className="w-full bg-black hover:bg-neutral-900 text-white font-display font-black py-3.5 px-4 text-xs tracking-widest shadow-[4px_4px_0px_#dc2626] rounded-none flex items-center justify-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
         >
-          <RefreshCw className="w-4 h-4 animate-spin-reverse" />
-          重置心态，重振雄风 ➔
-        </button>
+          <span>🔄 重整状态 · 一键续战</span>
+        </motion.button>
       </div>
 
     </div>

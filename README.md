@@ -1,20 +1,160 @@
+# 🎓 脆皮大学生 - 大学生生存模拟器
+
+> 一款充满梗和挑战的大学生生活模拟游戏，在限定时间内完成各种校园任务，体验当代大学生的"脆皮"日常！
+
+## 📖 项目简介
+
+**脆皮大学生**是一款基于 React + Vite 开发的网页小游戏，玩家将扮演一名当代大学生，在各种校园场景中完成挑战。游戏融合了时间管理、压力系统和随机事件，让玩家体验大学生面临的各种"生存挑战"。
+
+## 🎮 游戏特色
+
+### 🧬 12种独特体质
+每种体质都有独特的增益和减益效果：
+
+| 体质 | 特色 |
+|------|------|
+| 👁️ 熬夜脱发体质 | 时间充裕但后劲不足 |
+| 🍬 低血糖易手抖体质 | 摸鱼降温翻倍，点错惩罚加重 |
+| 🫣 社恐点名恐惧体质 | 化解突袭时满血复活 |
+| 🧠 考前健忘体质 | 心态上限提升，偶尔闪回空白 |
+| 🤯 极易慌张体质 | 超高暴击，情绪波动剧烈 |
+| 🧋 奶茶续命体质 | 摸鱼减压效果拉满 |
+| 📱 手机成瘾体质 | 极限反应速度，DDL永远不够 |
+| 😵‍💫 早八崩溃体质 | 开局短暂免疫压力 |
+| 📖 期末突击体质 | 前期无敌，后期乏力 |
+| 🛋️ 宿舍躺平体质 | 压力来得慢，但行动力为零 |
+| ⚔️ 内卷焦虑体质 | 对了狂喜，错了暴怒 |
+| 🧘 佛系躺赢体质 | 心态上限极高，不容易崩 |
+
+### 🎯 6大校园关卡
+
+1. **导员要点名了！** - 舒尔特挑战（按顺序点击1-25）
+2. **随堂微积分测试！** - 逻辑数独挑战（4×4数独）
+3. **宿舍大突击检查！** - 华容道滑块挑战（排列1-8）
+4. **实验室电路短路了！** - 管道连接挑战（连通管道）
+5. **选课系统崩溃前夜！** - 一笔画挑战（一笔走遍所有路径）
+6. **考前突击背公式！** - 记忆翻牌挑战（配对找牌）
+
+### 💫 核心机制
+
+- **逆风值系统**：答错或遭遇突发事件会增加逆风值，满100%持续5秒即心态崩盘
+- **时间压力**：每关都有倒计时，时间耗尽即失败
+- **摸鱼减压**：可以花费时间降低逆风值
+- **导员突袭**：随机出现的干扰事件，需要快速反应
+- **星级评价**：根据表现获得1-3星评价
+
+## 🛠️ 技术栈
+
+- **前端框架**：React 19
+- **构建工具**：Vite 6
+- **样式方案**：Tailwind CSS 4
+- **动画库**：Motion (Framer Motion)
+- **AI 集成**：Google Gemini AI
+- **语言**：TypeScript
+
+## 🚀 快速开始
+
+### 环境要求
+
+- Node.js 18+
+- npm 或 yarn
+
+### 安装步骤
+
+1. 克隆项目
+```bash
+git clone https://github.com/your-username/Crunchy_Students.git
+cd Crunchy_Students
+```
+
+2. 安装依赖
+```bash
+npm install
+```
+
+3. 配置环境变量
+```bash
+cp .env.example .env.local
+# 编辑 .env.local，填入你的 Gemini API Key
+```
+
+4. 启动开发服务器
+```bash
+npm run dev
+```
+
+5. 打开浏览器访问 `http://localhost:3000`
+
+### 构建部署
+
+```bash
+# 构建生产版本
+npm run build
+
+# 预览构建结果
+npm run preview
+```
+
+## 📁 项目结构
+
+```
+Crunchy_Students/
+├── src/
+│   ├── components/          # React 组件
+│   │   ├── StartScreen.tsx      # 开始界面
+│   │   ├── LevelSelectScreen.tsx # 关卡选择
+│   │   ├── TalentSelectScreen.tsx # 体质选择
+│   │   ├── LevelIntroScreen.tsx  # 关卡介绍
+│   │   ├── GameMainView.tsx      # 游戏主界面
+│   │   ├── ClearScreen.tsx       # 通关界面
+│   │   └── FailedScreen.tsx      # 失败界面
+│   ├── App.tsx              # 主应用组件
+│   ├── data.ts              # 游戏数据（体质、关卡配置）
+│   ├── types.ts             # TypeScript 类型定义
+│   ├── main.tsx             # 入口文件
+│   └── index.css            # 全局样式
+├── index.html               # HTML 入口
+├── package.json             # 项目配置
+├── tsconfig.json            # TypeScript 配置
+├── vite.config.ts           # Vite 配置
+└── .env.example             # 环境变量示例
+```
+
+## 🎨 游戏截图
+
+> 🚧 游戏截图待添加
+
+## 📝 开发日志
+
+- **v1.0** (2024-05-31) - 完成基础关卡V1.0
+  - 实现12种体质系统
+  - 实现6个关卡挑战
+  - 实现逆风值和时间管理系统
+  - 实现导员突袭随机事件
+  - 实现星级评价系统
+
+## 🤝 贡献指南
+
+欢迎提交 Issue 和 Pull Request！
+
+1. Fork 本仓库
+2. 创建你的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交你的改动 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 打开一个 Pull Request
+
+## 📄 开源协议
+
+本项目基于 Apache-2.0 协议开源 - 详见 [LICENSE](LICENSE) 文件
+
+## 🙏 致谢
+
+- 感谢所有当代大学生提供的灵感和素材
+- 感谢 Google Gemini AI 提供的技术支持
+
+---
+
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+  <p>🎮 祝你在"脆皮"的道路上越走越远！</p>
+  <p>Made with ❤️ by Crunchy Students Team</p>
 </div>
-
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/9fc0ed46-38f5-4b2d-a12c-7616e879952b
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`

@@ -6,7 +6,6 @@
 import { GameStats } from '../types';
 import { SUCCESS_TITLES } from '../data';
 import { TimelineChart } from './TimelineChart';
-import { Star, RefreshCw, Trophy, ArrowRight, Award } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 
@@ -21,7 +20,6 @@ export function ClearScreen({ stats, isLastLevel, onRestart, onNextLevel }: Clea
   const [funnyTitle, setFunnyTitle] = useState('');
 
   useEffect(() => {
-    // Pick a funny title randomly or depending on maximum stress
     if (stats.maxStress > 85) {
       setFunnyTitle('【刀尖舔蜜·极限作死大师】');
     } else if (stats.maxStress < 25) {
@@ -34,131 +32,102 @@ export function ClearScreen({ stats, isLastLevel, onRestart, onNextLevel }: Clea
     }
   }, [stats]);
 
-  // Star description
   const getStarText = (stars: number) => {
     switch (stars) {
-      case 3:
-        return '完美级逆风掌控！高压下安然自若。';
-      case 2:
-        return '优秀自救人！虽然慌张但最终逆袭。';
-      default:
-        return '勉强过关！发际线再次向后推移一厘米。';
+      case 3: return '完美级逆风掌控！';
+      case 2: return '优秀自救人！最终逆袭。';
+      default: return '勉强过关！发际线又后移了。';
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-black text-white p-5 border-4 border-white rounded-lg overflow-y-auto custom-scrollbar select-none">
-      
-      {/* Top Victory Header */}
-      <div className="text-center border-b border-neutral-800 pb-3 mb-4">
-        <motion.div
-          initial={{ scale: 0.5, rotate: -15 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 10 }}
-          className="inline-block bg-yellow-500 text-black text-xs font-black uppercase px-2 py-1 tracking-widest rounded-sm mb-1"
-        >
-          MISSION FLIP COMPLETE ➔ 逆风翻盘成功
-        </motion.div>
-        <h2 className="text-2xl font-black text-white font-mono flex items-center justify-center gap-1.5 leading-none mt-2">
-          <Trophy className="w-6 h-6 text-yellow-500" />
-          抗压解谜通关！
+    <div className="flex-1 flex flex-col justify-between p-5 text-black bg-stone-50 select-none overflow-y-auto custom-scrollbar">
+
+      {/* Header */}
+      <div className="text-center pt-1">
+        <span className="inline-block bg-neutral-900 text-yellow-400 text-[8px] font-mono px-2 py-0.5 uppercase tracking-widest border border-black mb-1 shadow-[1px_1px_0px_#000]">[EXAMINATION REPORT]</span>
+        <h2 className="text-xl font-display font-black mt-1 leading-none flex flex-col">
+          <span className="text-emerald-700 font-extrabold text-xl">🎓 逆风突围成功！</span>
         </h2>
-        <p className="text-neutral-400 text-xs mt-1 font-mono">
-          STRESS FLIPPED SUCCESSFULLY // DATA UPLOADED
-        </p>
       </div>
 
-      {/* Star Evaluation */}
-      <div className="flex flex-col items-center py-3 bg-neutral-950 border border-neutral-800 rounded p-4 mb-4">
-        <div className="flex gap-2">
-          {[1, 2, 3].map((starIdx) => {
-            const isFilled = starIdx <= stats.stars;
-            return (
-              <motion.div
-                key={starIdx}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: starIdx * 0.15 }}
-              >
-                <Star
-                  className={`w-10 h-10 ${
-                    isFilled ? 'text-yellow-500 fill-yellow-500' : 'text-neutral-800 fill-neutral-900'
-                  }`}
-                />
-              </motion.div>
-            );
-          })}
+      {/* Stats Card */}
+      <div className="my-2 border-[3px] border-black p-3.5 bg-white shadow-[4px_4px_0px_#000000] relative space-y-3 rounded-none">
+        <div className="absolute top-2 right-2 bg-red-50 text-red-600 p-1 border-2 border-dashed border-red-500 transform rotate-6 scale-90">
+          <span className="text-[8px] font-mono block font-black uppercase tracking-tight">APPROVED</span>
         </div>
-        <p className="text-xs text-yellow-500 font-bold font-mono mt-2.5">
-          {getStarText(stats.stars)}
-        </p>
 
-        {/* Dynamic collegiate honors */}
-        <div className="mt-3 text-center border-t border-neutral-900 pt-2.5 w-full">
-          <span className="text-[10px] text-neutral-500 block uppercase font-mono">获得高校认可认证：</span>
-          <span className="text-sm font-black text-neutral-200 mt-1 block flex items-center justify-center gap-1">
-            <Award className="w-4 h-4 text-emerald-400" /> {funnyTitle}
-          </span>
+        {/* Stars */}
+        <div className="flex items-center gap-1.5 justify-center py-1 bg-stone-50/50 border border-stone-200">
+          {[1, 2, 3].map((i) => (
+            <motion.span
+              key={i}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.15 }}
+              className={`text-3xl ${i <= stats.stars ? '' : 'opacity-20'}`}
+            >
+              ⭐
+            </motion.span>
+          ))}
+        </div>
+        <p className="text-[11px] text-yellow-600 font-bold font-mono text-center">{getStarText(stats.stars)}</p>
+
+        {/* Grade */}
+        <div className="border-2 border-black py-2.5 bg-neutral-50 text-center text-xs font-mono relative">
+          <span className="text-[8px] text-zinc-400 font-black block uppercase tracking-wider mb-0.5">抗压评定</span>
+          <span className="text-base font-display font-black text-red-600 block">【 {funnyTitle} 】</span>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
+          <div className="border-2 border-black p-1.5 bg-stone-50"><span className="text-[8px] text-zinc-400 block font-bold">答错</span><span className="font-bold text-black text-xs">{stats.errorsMade}次</span></div>
+          <div className="border-2 border-black p-1.5 bg-stone-50"><span className="text-[8px] text-zinc-400 block font-bold">峰值压力</span><span className={`font-black text-xs ${stats.maxStress >= 75 ? 'text-red-600' : 'text-stone-900'}`}>{stats.maxStress}%</span></div>
+          <div className="border-2 border-black p-1.5 bg-stone-50"><span className="text-[8px] text-zinc-400 block font-bold">摸鱼</span><span className="font-bold text-black text-xs">{stats.slackedOffCount}次</span></div>
+          <div className="border-2 border-black p-1.5 bg-stone-50"><span className="text-[8px] text-zinc-400 block font-bold">突袭应对</span><span className="font-bold text-black text-xs">{stats.surpriseSuccesses}/{stats.triggeredSurprisesCount}</span></div>
         </div>
       </div>
 
-      {/* Real Struggle timeline chart */}
-      <div className="mb-4">
+      {/* Timeline Chart */}
+      <div className="mb-3">
         <TimelineChart timeline={stats.timeline} maxStressThreshold={stats.maxStress} />
       </div>
 
-      {/* Numeric stats list */}
-      <div className="grid grid-cols-2 gap-2 text-xs font-mono mb-4">
-        <div className="bg-neutral-950 p-2.5 border border-neutral-900 rounded">
-          <span className="text-neutral-500 text-[10px] block">作答失误数:</span>
-          <span className="text-[#ef4444] font-black text-sm">{stats.errorsMade} 次</span>
-        </div>
-        <div className="bg-neutral-950 p-2.5 border border-neutral-900 rounded">
-          <span className="text-neutral-500 text-[10px] block">极限最高逆风值:</span>
-          <span className="text-amber-500 font-black text-sm">{stats.maxStress}%</span>
-        </div>
-        <div className="bg-neutral-950 p-2.5 border border-neutral-900 rounded">
-          <span className="text-neutral-500 text-[10px] block">主动摸鱼减压:</span>
-          <span className="text-sky-400 font-black text-sm">{stats.slackedOffCount} 次</span>
-        </div>
-        <div className="bg-neutral-950 p-2.5 border border-neutral-900 rounded">
-          <span className="text-neutral-500 text-[10px] block">化解导导突袭:</span>
-          <span className="text-emerald-400 font-black text-sm">
-            {stats.surpriseSuccesses}/{stats.triggeredSurprisesCount}
-          </span>
-        </div>
-      </div>
-
-      {/* Action buttons */}
-      <div className="mt-auto pt-3 border-t border-neutral-800 grid grid-cols-2 gap-3">
-        <button
-          id="btn-play-level-retry"
-          onClick={onRestart}
-          className="flex items-center justify-center gap-1.5 p-3 border-2 border-white text-white font-mono font-bold text-xs hover:bg-neutral-900 transition-colors cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          重刷此局
-        </button>
-
-        {!isLastLevel ? (
-          <button
-            id="btn-play-level-next"
-            onClick={onNextLevel}
-            className="flex items-center justify-center gap-1.5 p-3 bg-white text-black font-mono font-bold text-xs hover:bg-neutral-900 hover:text-white hover:border-neutral-500 transition-colors cursor-pointer border-2 border-white"
-          >
-            下一关卡
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        ) : (
-          <button
-            id="btn-play-level-final-reset"
+      {/* Action Buttons */}
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <motion.button
+            id="btn-play-level-retry"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onRestart}
-            className="flex items-center justify-center gap-1.5 p-3 bg-red-600 border-2 border-red-600 text-black font-mono font-black text-xs hover:bg-black hover:text-red-500 hover:border-red-500 transition-colors cursor-pointer"
+            className="flex-1 bg-black hover:bg-neutral-900 text-white font-display font-black py-3 px-3 text-xs tracking-wider rounded-none shadow-[3px_3px_0px_#10b981] flex items-center justify-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
           >
-            完美通关！重头开辟
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        )}
+            <span>🔄 重刷</span>
+          </motion.button>
+
+          {!isLastLevel ? (
+            <motion.button
+              id="btn-play-level-next"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onNextLevel}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-black font-display font-black py-3 px-3 text-xs tracking-wider rounded-none shadow-[3px_3px_0px_#000000] flex items-center justify-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
+            >
+              <span>🚀 下一关</span>
+            </motion.button>
+          ) : (
+            <motion.button
+              id="btn-play-level-final-reset"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onRestart}
+              className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black border-2 border-black font-display font-black py-3 px-3 text-xs tracking-wider rounded-none shadow-[3px_3px_0px_#000000] flex items-center justify-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
+            >
+              <span>📸 重头再来</span>
+            </motion.button>
+          )}
+        </div>
       </div>
 
     </div>

@@ -5,6 +5,7 @@
 
 export type GameState =
   | 'START'
+  | 'LEVEL_SELECT'
   | 'TALENT_SELECT'
   | 'LEVEL_INTRO'
   | 'PLAYING'

@@ -7,13 +7,13 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Level, Talent, GameStats, StressRecord } from '../types';
 import {
-  SUDOKU_PUZZLES, FUNNY_QUOTES, SudokuCell,
+  generate4x4SudokuPuzzle, FUNNY_QUOTES, SudokuCell,
   PIPE_PUZZLES, PipeCell, PipeType,
-  ONE_STROKE_PUZZLES, StrokeNode, StrokeEdge,
+  ONE_STROKE_PUZZLES, OneStrokePuzzle, StrokeNode, StrokeEdge,
   MEMORY_PAIRS, MemoryPair,
 } from '../data';
 import { 
-  AlertOctagon, AlertTriangle, ShieldCheck, Play, Pause, RefreshCw, Undo2, Coffee, Eye, Radio, BellRing, Skull
+  AlertOctagon, AlertTriangle, ShieldCheck, Play, Pause, RefreshCw, Undo2, Coffee, Eye, Radio, BellRing, Skull, ArrowLeft
 } from 'lucide-react';
 
 interface GameMainViewProps {
@@ -30,7 +30,7 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   // ----------------------------------------------------
   const baseTime = level.baseTime + (talent ? talent.initialTimeBonus : 0);
   const initialStress = talent ? talent.initialStress : 0;
-  const stressMaxCap = talent?.id === 'pre_exam_amnesia' ? 110 : 100;
+  const stressMaxCap = talent?.id === 'pre_exam_amnesia' ? 110 : talent?.id === 'zen_winner' ? 120 : 100;
 
   // ----------------------------------------------------
   // Primary States
@@ -52,6 +52,10 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   // Time tracker
   const [timeElapsed, setTimeElapsed] = useState<number>(0);
   const timelineRef = useRef<StressRecord[]>([]);
+  const timeElapsedRef = useRef<number>(0);
+  const stressRef = useRef<number>(0);
+  const isSlackingRef = useRef<boolean>(false);
+  const showSurpriseRef = useRef<boolean>(false);
 
   // 100% stress threshold countdown (5s melting mode)
   const [stressMeltCounter, setStressMeltCounter] = useState<number>(5);
@@ -59,6 +63,7 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   // Instructor audit alert trigger state
   const [showSurprise, setShowSurprise] = useState<boolean>(false);
   const [surpriseTimeLeft, setSurpriseTimeLeft] = useState<number>(3.0);
+  const [surpriseBaseTime, setSurpriseBaseTime] = useState<number>(3.0);
   const [surpriseOptions, setSurpriseOptions] = useState<string[]>([]);
   const [surpriseCorrectIdx, setSurpriseCorrectIdx] = useState<number>(0);
   const [surpriseStatusMsg, setSurpriseStatusMsg] = useState<string>('');
@@ -88,10 +93,13 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   // ----------------------------------------------------
   const [pipeCells, setPipeCells] = useState<PipeCell[]>([]);
   const [pipeRotations, setPipeRotations] = useState<number[]>([]);
+  const [pipePoweredIdxs, setPipePoweredIdxs] = useState<number[]>([]);
+  const pipeWinTriggeredRef = useRef<boolean>(false);
 
   // ----------------------------------------------------
   // One-Stroke State (Level 5)
   // ----------------------------------------------------
+  const [oneStrokePuzzle, setOneStrokePuzzle] = useState<OneStrokePuzzle>(ONE_STROKE_PUZZLES[0]);
   const [strokePath, setStrokePath] = useState<number[]>([]); // node ids visited
   const [strokeVisitedEdges, setStrokeVisitedEdges] = useState<Set<string>>(new Set());
 
@@ -107,6 +115,8 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   // Dynamic system timers
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const surpriseTimerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const handleFailedConclusionRef = useRef<(reason: 'TIMEOUT' | 'STRESS_CRASH') => void>(() => {});
+  const triggerSurpriseCheckRef = useRef<() => void>(() => {});
 
   // ----------------------------------------------------
   // Initializers
@@ -125,10 +135,7 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
       setSchulteNumbers(shuffled);
       setSchulteNext(1);
     } else if (level.id === 2) {
-      // Pick a random puzzle structure
-      const puzzleIdx = Math.floor(Math.random() * SUDOKU_PUZZLES.length);
-      const puzzle = SUDOKU_PUZZLES[puzzleIdx];
-      // Deep copy board cells
+      const puzzle = generate4x4SudokuPuzzle();
       const cellsCopy = puzzle.board.map((cell) => ({ ...cell }));
       setSudokuCells(cellsCopy);
       setSudokuSolution(puzzle.solution);
@@ -139,17 +146,19 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
       const board = generateSlidingPuzzle();
       setSlideBoard(board);
     } else if (level.id === 4) {
-      // Initialize pipe puzzle — scramble rotations
-      const puzzle = PIPE_PUZZLES[0];
-      const cells = puzzle.map((c) => ({ ...c }));
+      const cells = generatePipePuzzle4x4();
       const rotations = cells.map((c) => {
         const scramble = 1 + Math.floor(Math.random() * 3);
         return (c.solvedRotation + scramble) % 4;
       });
       setPipeCells(cells);
       setPipeRotations(rotations);
+      pipeWinTriggeredRef.current = false;
+      const powered = getPipePoweredIndices(cells, rotations);
+      setPipePoweredIdxs([...powered]);
     } else if (level.id === 5) {
       // Initialize one-stroke puzzle
+      setOneStrokePuzzle(generateOneStrokePuzzle());
       setStrokePath([]);
       setStrokeVisitedEdges(new Set());
     } else if (level.id === 6) {
@@ -183,6 +192,22 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
     setStressMeltCounter(5);
   }, [level, talent]);
 
+  useEffect(() => {
+    timeElapsedRef.current = timeElapsed;
+  }, [timeElapsed]);
+
+  useEffect(() => {
+    stressRef.current = stress;
+  }, [stress]);
+
+  useEffect(() => {
+    isSlackingRef.current = isSlacking;
+  }, [isSlacking]);
+
+  useEffect(() => {
+    showSurpriseRef.current = showSurprise;
+  }, [showSurprise]);
+
   // Record timeline every second
   useEffect(() => {
     if (isPaused || isSlacking || showSurprise) return;
@@ -211,44 +236,45 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
 
   // Main CountDown & Stress Melt Loop
   useEffect(() => {
-    if (isPaused) return;
+    if (!handleFailedConclusionRef.current) return;
+    if (!triggerSurpriseCheckRef.current) return;
 
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     timerIntervalRef.current = setInterval(() => {
-      // Left click to normal gameplay countdown
-      if (!isSlacking && !showSurprise) {
-        setRemainingTime((prev) => {
-          if (prev <= 1) {
-            handleFailedConclusion('TIMEOUT');
+      if (isPaused) return;
+      if (isSlackingRef.current || showSurpriseRef.current) return;
+
+      setRemainingTime((prev) => {
+        if (prev <= 1) {
+          handleFailedConclusionRef.current('TIMEOUT');
+          return 0;
+        }
+        return prev - 1;
+      });
+
+      const currentStress = stressRef.current;
+      if (currentStress >= 100) {
+        setStressMeltCounter((melt) => {
+          if (melt <= 1) {
+            handleFailedConclusionRef.current('STRESS_CRASH');
             return 0;
           }
-          return prev - 1;
+          return melt - 1;
         });
+      } else {
+        setStressMeltCounter(5);
+      }
 
-        // 100% stress crash timer handler
-        if (stress >= 100) {
-          setStressMeltCounter((melt) => {
-            if (melt <= 1) {
-              handleFailedConclusion('STRESS_CRASH');
-              return 0;
-            }
-            return melt - 1;
-          });
-        } else {
-          setStressMeltCounter(5); // reset Buffer
-        }
-
-        // Random roll for Instructor Audit (conduct Check once every 12 seconds with 25% probability)
-        const checkChance = Math.random();
-        if (checkChance < 0.04 && timeElapsed > 8 && !showSurprise) {
-          triggerSurpriseCheck();
-        }
+      const checkChance = Math.random();
+      if (checkChance < 0.04 && timeElapsedRef.current > 8 && !showSurpriseRef.current) {
+        triggerSurpriseCheckRef.current();
       }
     }, 1000);
 
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
-  }, [stress, isPaused, isSlacking, showSurprise, timeElapsed]);
+  }, [isPaused]);
 
   // ----------------------------------------------------
   // Actions
@@ -257,6 +283,10 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     onLose(getFinalStats(), reason);
   };
+
+  useEffect(() => {
+    handleFailedConclusionRef.current = handleFailedConclusion;
+  }, [handleFailedConclusion]);
 
   const getFinalStats = (): GameStats => {
     return {
@@ -285,8 +315,20 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
     return 1;
   };
 
-  // Adjust stress Helper
+  // Adjust stress Helper (with talent modifiers)
   const adjustStressValue = (amount: number) => {
+    // Lying flat: slower stress growth, slower recovery
+    if (talent?.id === 'lying_flat') {
+      amount = amount > 0 ? Math.round(amount * 0.7) : Math.round(amount * 0.6);
+    }
+    // Zen winner: all stress changes are dampened
+    if (talent?.id === 'zen_winner') {
+      amount = Math.round(amount * 0.8);
+    }
+    // Morning class collapse: immune to stress for first 10 seconds
+    if (talent?.id === 'morning_class_collapse' && timeElapsed < 10 && amount > 0) {
+      return; // immune to stress increase
+    }
     setStress((prev) => {
       let next = prev + amount;
       if (next < 0) next = 0;
@@ -312,12 +354,29 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
 
       // Decrement stress
       if (newConsecutive >= 3) {
-        const recoverRate = talent?.id === 'panic_prone' ? -50 : -30;
+        let recoverRate = talent?.id === 'panic_prone' ? -50 : -30;
+        // Cramming master: enhanced combo recovery (but weakened after 60s)
+        if (talent?.id === 'cramming_master') {
+          recoverRate = timeElapsed < 60 ? -60 : -15;
+        }
+        // Involution anxiety: extra recovery on correct
+        if (talent?.id === 'involution_anxiety') {
+          recoverRate = Math.round(recoverRate * 1.3);
+        }
         adjustStressValue(recoverRate);
         setConsecutiveCorrect(0); // consume combo
         setFloatingQuote('💡 连消COMBO爽翻！心态瞬间冷若冰霜！');
       } else {
-        adjustStressValue(-5);
+        let baseRecover = -5;
+        // Involution anxiety: extra recovery on each correct
+        if (talent?.id === 'involution_anxiety') {
+          baseRecover = -8;
+        }
+        // Cramming master: enhanced recovery early, weaker later
+        if (talent?.id === 'cramming_master') {
+          baseRecover = timeElapsed < 60 ? -8 : -2;
+        }
+        adjustStressValue(baseRecover);
       }
 
       // Amnesia flashes amnesia effect on success
@@ -340,7 +399,15 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
       // Penalty logic depending on stress & talent
       const stressPenaltyBase = 20;
       const penaltyMultiplier = talent ? talent.stressPenaltyMultiplier : 1.0;
-      const extraPanicFactor = talent?.id === 'social_phobia' ? 1.3 : 1.0;
+      let extraPanicFactor = talent?.id === 'social_phobia' ? 1.3 : 1.0;
+      // Involution anxiety: extra penalty on wrong
+      if (talent?.id === 'involution_anxiety') {
+        extraPanicFactor *= 1.15;
+      }
+      // Milk tea addict: extra penalty on consecutive wrong
+      if (talent?.id === 'milk_tea_addict' && consecutiveCorrect === 0) {
+        extraPanicFactor *= 1.25;
+      }
       const calculatedStressPenalty = Math.round(stressPenaltyBase * penaltyMultiplier * extraPanicFactor);
 
       adjustStressValue(calculatedStressPenalty);
@@ -477,7 +544,7 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
 
     setIsSlacking(true);
     setSlackedOffCount((prev) => prev + 1);
-    setSlackTimeLeft(10);
+    setSlackTimeLeft(5);
     setConsecutiveCorrect(0);
 
     // Apply the 15s absolute time cost immediately
@@ -487,14 +554,18 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
     });
 
     // Start 10 seconds rapid relief timer
-    let ticks = 10;
+    let ticks = 5;
     const slackTimer = setInterval(() => {
       ticks -= 1;
       setSlackTimeLeft(ticks);
 
       // Stress relief speed - doubled if "low blood sugar hand shack" active
       const normalRelief = -5;
-      const multiplier = talent?.id === 'low_sugar' ? 2.0 : 1.0;
+      let multiplier = talent?.id === 'low_sugar' ? 2.0 : 1.0;
+      // Milk tea addict: +80% recovery
+      if (talent?.id === 'milk_tea_addict') {
+        multiplier = 1.8;
+      }
       adjustStressValue(normalRelief * multiplier);
 
       if (ticks <= 0) {
@@ -511,7 +582,10 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   const triggerSurpriseCheck = () => {
     setTriggeredSurprisesCount((prev) => prev + 1);
     setShowSurprise(true);
-    setSurpriseTimeLeft(3.0);
+    // Phone addict: faster reaction time (+50%), social phobia: shorter time
+    const baseTimeVal = talent?.id === 'phone_addict' ? 4.5 : talent?.id === 'social_phobia' ? 1.8 : 3.0;
+    setSurpriseBaseTime(baseTimeVal);
+    setSurpriseTimeLeft(baseTimeVal);
     setSurpriseStatusMsg('');
 
     // Generate option templates
@@ -540,7 +614,7 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
     setSurpriseCorrectIdx(correctIdx);
 
     // Alert decrease ticks
-    let leftTime = 3.0;
+    let leftTime = baseTimeVal;
     surpriseTimerIntervalRef.current = setInterval(() => {
       leftTime -= 0.1;
       // Round to 1 decimal place
@@ -553,6 +627,10 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
       }
     }, 100);
   };
+
+  useEffect(() => {
+    triggerSurpriseCheckRef.current = triggerSurpriseCheck;
+  }, [triggerSurpriseCheck]);
 
   const handleSurpriseResolve = (isSuccess: boolean) => {
     if (surpriseTimerIntervalRef.current) clearInterval(surpriseTimerIntervalRef.current);
@@ -671,13 +749,27 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   // ----------------------------------------------------
   // Level 4: Pipe Puzzle Helpers
   // ----------------------------------------------------
+  const pipeCols = 4;
+  const pipeRows = 4;
+  const pipeSourceIdx = 0;
+  const pipeSinkIdx = 15;
+
+  const shuffle = <T,>(arr: readonly T[]): T[] => {
+    const out = [...arr];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  };
+
   const getPipeConnections = (type: PipeType, rotation: number): boolean[] => {
     // [up, right, down, left]
     const baseMap: Record<PipeType, boolean[]> = {
       empty:   [false, false, false, false],
       straight:[true, false, true, false],
       corner:  [true, true, false, false],
-      tee:     [true, true, false, true],
+      tee:     [true, true, true, false],
       cross:   [true, true, true, true],
     };
     const base = baseMap[type];
@@ -689,51 +781,205 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
     return result;
   };
 
-  const handlePipeClick = (idx: number) => {
-    if (isPaused || isSlacking || showSurprise) return;
-    if (pipeCells[idx].type === 'empty') return;
+  const generatePipePuzzle4x4 = (): PipeCell[] => {
+    const dirToDelta: Array<[number, number]> = [
+      [-1, 0],
+      [0, 1],
+      [1, 0],
+      [0, -1],
+    ];
+    const oppositeDir = [2, 3, 0, 1] as const;
 
-    const newRotations = [...pipeRotations];
-    newRotations[idx] = (newRotations[idx] + 1) % 4;
-    setPipeRotations(newRotations);
+    const inBounds = (r: number, c: number) => r >= 0 && r < pipeRows && c >= 0 && c < pipeCols;
+    const idxOf = (r: number, c: number) => r * pipeCols + c;
 
-    // Check win — all connected?
-    checkPipeVictory(newRotations);
+    const findPath = (): number[] | null => {
+      const target = pipeSinkIdx;
+      const visited = new Set<number>();
+      const path: number[] = [];
+
+      const dfs = (idx: number): boolean => {
+        visited.add(idx);
+        path.push(idx);
+        if (idx === target) return true;
+
+        const r = Math.floor(idx / pipeCols);
+        const c = idx % pipeCols;
+        const dirs = shuffle([0, 1, 2, 3] as const);
+        for (const dir of dirs) {
+          const nr = r + dirToDelta[dir][0];
+          const nc = c + dirToDelta[dir][1];
+          if (!inBounds(nr, nc)) continue;
+          const nIdx = idxOf(nr, nc);
+          if (visited.has(nIdx)) continue;
+          if (dfs(nIdx)) return true;
+        }
+
+        path.pop();
+        visited.delete(idx);
+        return false;
+      };
+
+      if (!dfs(pipeSourceIdx)) return null;
+      return path;
+    };
+
+    for (let attempt = 0; attempt < 60; attempt++) {
+      const path = findPath();
+      if (!path || path.length < 3) continue;
+
+      const neighbors = new Map<number, Set<number>>();
+      const connect = (a: number, b: number) => {
+        if (!neighbors.has(a)) neighbors.set(a, new Set<number>());
+        if (!neighbors.has(b)) neighbors.set(b, new Set<number>());
+        neighbors.get(a)!.add(b);
+        neighbors.get(b)!.add(a);
+      };
+
+      for (let i = 0; i < path.length - 1; i++) {
+        connect(path[i], path[i + 1]);
+      }
+
+      const pathSet = new Set<number>(path);
+      const candidates: Array<[number, number]> = [];
+      for (let i = 1; i < path.length - 2; i++) {
+        const a = path[i];
+        const ar = Math.floor(a / pipeCols);
+        const ac = a % pipeCols;
+        for (const [dr, dc] of dirToDelta) {
+          const nr = ar + dr;
+          const nc = ac + dc;
+          if (!inBounds(nr, nc)) continue;
+          const b = idxOf(nr, nc);
+          if (b === path[i - 1] || b === path[i + 1]) continue;
+          if (!pathSet.has(b)) continue;
+          if (neighbors.get(a)?.has(b)) continue;
+          candidates.push([a, b]);
+        }
+      }
+
+      const extraEdgesTarget = Math.random() < 0.45 ? 0 : 1 + Math.floor(Math.random() * 2);
+      let added = 0;
+      for (const [a, b] of shuffle(candidates)) {
+        if (added >= extraEdgesTarget) break;
+        const da = neighbors.get(a)?.size ?? 0;
+        const db = neighbors.get(b)?.size ?? 0;
+        if (da >= 4 || db >= 4) continue;
+        connect(a, b);
+        added += 1;
+      }
+
+      const edgeDirs = (a: number, b: number): [number, number] => {
+        const ar = Math.floor(a / pipeCols);
+        const ac = a % pipeCols;
+        const br = Math.floor(b / pipeCols);
+        const bc = b % pipeCols;
+        if (br === ar - 1 && bc === ac) return [0, 2];
+        if (br === ar + 1 && bc === ac) return [2, 0];
+        if (br === ar && bc === ac + 1) return [1, 3];
+        return [3, 1];
+      };
+
+      const desiredConnsByIdx = new Map<number, boolean[]>();
+      for (const idx of neighbors.keys()) {
+        desiredConnsByIdx.set(idx, [false, false, false, false]);
+      }
+
+      for (const [a, set] of neighbors.entries()) {
+        const conns = desiredConnsByIdx.get(a)!;
+        for (const b of set) {
+          const [adir] = edgeDirs(a, b);
+          conns[adir] = true;
+        }
+      }
+
+      const sourceConns = desiredConnsByIdx.get(pipeSourceIdx) ?? [false, false, false, false];
+      sourceConns[3] = true;
+      desiredConnsByIdx.set(pipeSourceIdx, sourceConns);
+
+      const sinkConns = desiredConnsByIdx.get(pipeSinkIdx) ?? [false, false, false, false];
+      sinkConns[1] = true;
+      desiredConnsByIdx.set(pipeSinkIdx, sinkConns);
+
+      const cells: PipeCell[] = [];
+      for (let idx = 0; idx < pipeCols * pipeRows; idx++) {
+        const desired = desiredConnsByIdx.get(idx);
+        if (!desired) {
+          cells.push({ type: 'empty', solvedRotation: 0 });
+          continue;
+        }
+        const deg = desired.filter(Boolean).length;
+        let type: PipeType = 'empty';
+        if (deg === 2) {
+          const isStraight = (desired[0] && desired[2]) || (desired[1] && desired[3]);
+          type = isStraight ? 'straight' : 'corner';
+        } else if (deg === 3) {
+          type = 'tee';
+        } else if (deg === 4) {
+          type = 'cross';
+        } else {
+          continue;
+        }
+
+        let solvedRotation = 0;
+        for (let r = 0; r < 4; r++) {
+          const conns = getPipeConnections(type, r);
+          let ok = true;
+          for (let d = 0; d < 4; d++) {
+            if (conns[d] !== desired[d]) {
+              ok = false;
+              break;
+            }
+          }
+          if (ok) {
+            solvedRotation = r;
+            break;
+          }
+        }
+
+        cells.push({ type, solvedRotation });
+      }
+
+      const solvedRots = cells.map((c) => c.solvedRotation);
+      if (!getPipePoweredIndices(cells, solvedRots).has(pipeSinkIdx)) continue;
+      if (hasPipeLeaks(cells, solvedRots)) continue;
+
+      return cells;
+    }
+
+    return PIPE_PUZZLES[0].map((c) => ({ ...c }));
   };
 
-  const checkPipeVictory = (rots: number[]) => {
-    // BFS/DFS from left edge to right edge through connected pipes
-    const cols = 4;
-    const rows = 4;
-    const visited = new Set<number>();
-    const queue: number[] = [];
+  const getPipePoweredIndices = (cells: PipeCell[], rots: number[]): Set<number> => {
+    if (cells.length !== pipeCols * pipeRows || rots.length !== pipeCols * pipeRows) return new Set<number>();
+    const startConns = getPipeConnections(cells[pipeSourceIdx].type, rots[pipeSourceIdx]);
+    if (!startConns[3]) return new Set<number>();
 
-    // Start from left edge cells that connect left
-    for (let r = 0; r < rows; r++) {
-      const idx = r * cols;
-      const conns = getPipeConnections(pipeCells[idx].type, rots[idx]);
-      if (conns[3]) { // connects left
-        queue.push(idx);
-        visited.add(idx);
-      }
-    }
+    const visited = new Set<number>();
+    const queue: number[] = [pipeSourceIdx];
+    visited.add(pipeSourceIdx);
 
     while (queue.length > 0) {
       const curr = queue.shift()!;
-      const r = Math.floor(curr / cols);
-      const c = curr % cols;
-      const conns = getPipeConnections(pipeCells[curr].type, rots[curr]);
+      const r = Math.floor(curr / pipeCols);
+      const c = curr % pipeCols;
+      const conns = getPipeConnections(cells[curr].type, rots[curr]);
 
-      // Check each direction
-      const dirs = [[-1, 0, 0, 2], [0, 1, 1, 3], [1, 0, 2, 0], [0, -1, 3, 1]]; // [dr, dc, myDir, theirDir]
+      const dirs: Array<[number, number, number, number]> = [
+        [-1, 0, 0, 2],
+        [0, 1, 1, 3],
+        [1, 0, 2, 0],
+        [0, -1, 3, 1],
+      ];
+
       for (const [dr, dc, myDir, theirDir] of dirs) {
         if (!conns[myDir]) continue;
         const nr = r + dr;
         const nc = c + dc;
-        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
-        const nIdx = nr * cols + nc;
+        if (nr < 0 || nr >= pipeRows || nc < 0 || nc >= pipeCols) continue;
+        const nIdx = nr * pipeCols + nc;
         if (visited.has(nIdx)) continue;
-        const nConns = getPipeConnections(pipeCells[nIdx].type, rots[nIdx]);
+        const nConns = getPipeConnections(cells[nIdx].type, rots[nIdx]);
         if (nConns[theirDir]) {
           visited.add(nIdx);
           queue.push(nIdx);
@@ -741,28 +987,187 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
       }
     }
 
-    // Check if any right-edge cell is reached
-    for (let r = 0; r < rows; r++) {
-      const idx = r * cols + (cols - 1);
-      if (visited.has(idx)) {
-        const conns = getPipeConnections(pipeCells[idx].type, rots[idx]);
-        if (conns[1]) { // connects right
-          handleWinConclusion();
-          return;
+    return visited;
+  };
+
+  const hasPipeLeaks = (cells: PipeCell[], rots: number[]): boolean => {
+    const opp = [2, 3, 0, 1] as const;
+    for (let idx = 0; idx < cells.length; idx++) {
+      const r = Math.floor(idx / pipeCols);
+      const c = idx % pipeCols;
+      const conns = getPipeConnections(cells[idx].type, rots[idx]);
+      for (let dir = 0; dir < 4; dir++) {
+        if (!conns[dir]) continue;
+        const drdc = [
+          [-1, 0],
+          [0, 1],
+          [1, 0],
+          [0, -1],
+        ] as const;
+        const nr = r + drdc[dir][0];
+        const nc = c + drdc[dir][1];
+        const isOut = nr < 0 || nr >= pipeRows || nc < 0 || nc >= pipeCols;
+        if (isOut) {
+          const allowed =
+            (idx === pipeSourceIdx && dir === 3) ||
+            (idx === pipeSinkIdx && dir === 1);
+          if (!allowed) return true;
+          continue;
         }
+        const nIdx = nr * pipeCols + nc;
+        const nConns = getPipeConnections(cells[nIdx].type, rots[nIdx]);
+        if (!nConns[opp[dir]]) return true;
       }
     }
+    return false;
+  };
+
+  const handlePipeClick = (idx: number) => {
+    if (isPaused || isSlacking || showSurprise) return;
+    if (pipeCells[idx].type === 'empty') return;
+
+    setPipeRotations((prev) => {
+      const next = [...prev];
+      next[idx] = (next[idx] + 1) % 4;
+      checkPipeVictory(next);
+      return next;
+    });
+  };
+
+  const checkPipeVictory = (rots: number[]) => {
+    const powered = getPipePoweredIndices(pipeCells, rots);
+    setPipePoweredIdxs([...powered]);
+    if (pipeWinTriggeredRef.current) return;
+    if (!powered.has(pipeSinkIdx)) return;
+    if (hasPipeLeaks(pipeCells, rots)) return;
+    pipeWinTriggeredRef.current = true;
+    setTimeout(() => {
+      handleWinConclusion();
+    }, 350);
   };
 
   // ----------------------------------------------------
   // Level 5: One-Stroke Drawing Helpers
   // ----------------------------------------------------
-  const puzzle5 = ONE_STROKE_PUZZLES[0];
+  const puzzle5 = oneStrokePuzzle;
+  const puzzle5OddNodes = (() => {
+    const degreeByNode = new Map<number, number>();
+    for (const [a, b] of puzzle5.edges) {
+      degreeByNode.set(a, (degreeByNode.get(a) ?? 0) + 1);
+      degreeByNode.set(b, (degreeByNode.get(b) ?? 0) + 1);
+    }
+    return Array.from(degreeByNode.entries())
+      .filter(([, deg]) => deg % 2 === 1)
+      .map(([nodeId]) => nodeId);
+  })();
+
+  const generateOneStrokePuzzle = (): OneStrokePuzzle => {
+    const base = ONE_STROKE_PUZZLES[0];
+    const nodes = base.nodes.map((n) => ({ ...n }));
+    const nodeIds = nodes.map((n) => n.id);
+    const allPairs: StrokeEdge[] = [];
+    for (let i = 0; i < nodeIds.length; i++) {
+      for (let j = i + 1; j < nodeIds.length; j++) {
+        allPairs.push([nodeIds[i], nodeIds[j]]);
+      }
+    }
+
+    const keyOf = (a: number, b: number) => `${Math.min(a, b)}-${Math.max(a, b)}`;
+
+    const buildEulerTrail = (edges: StrokeEdge[]): number[] | null => {
+      const adj = new Map<number, number[]>();
+      for (const id of nodeIds) adj.set(id, []);
+      for (const [a, b] of edges) {
+        adj.get(a)!.push(b);
+        adj.get(b)!.push(a);
+      }
+
+      const degrees = nodeIds.map((id) => adj.get(id)!.length);
+      const odd = nodeIds.filter((id, i) => degrees[i] % 2 === 1);
+      if (!(odd.length === 0 || odd.length === 2)) return null;
+      if (degrees.some((d) => d === 0)) return null;
+
+      const visited = new Set<number>();
+      const queue: number[] = [nodeIds[0]];
+      visited.add(nodeIds[0]);
+      while (queue.length > 0) {
+        const v = queue.shift()!;
+        for (const n of adj.get(v)!) {
+          if (visited.has(n)) continue;
+          visited.add(n);
+          queue.push(n);
+        }
+      }
+      if (visited.size !== nodeIds.length) return null;
+
+      const start = odd.length === 2 ? odd[0] : nodeIds[0];
+      const workAdj = new Map<number, number[]>();
+      for (const id of nodeIds) workAdj.set(id, [...adj.get(id)!]);
+
+      const stack: number[] = [start];
+      const out: number[] = [];
+
+      while (stack.length > 0) {
+        const v = stack[stack.length - 1];
+        const list = workAdj.get(v)!;
+        if (list.length === 0) {
+          out.push(v);
+          stack.pop();
+          continue;
+        }
+        const u = list.pop()!;
+        const backList = workAdj.get(u)!;
+        const idx = backList.lastIndexOf(v);
+        if (idx >= 0) backList.splice(idx, 1);
+        stack.push(u);
+      }
+
+      const trail = out.reverse();
+      if (trail.length !== edges.length + 1) return null;
+      return trail;
+    };
+
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const desiredEdges = 7 + Math.floor(Math.random() * 3);
+
+      const edgeKeys = new Set<string>();
+      const edges: StrokeEdge[] = [];
+
+      const connected: number[] = [nodeIds[Math.floor(Math.random() * nodeIds.length)]];
+      const remaining = nodeIds.filter((id) => id !== connected[0]);
+      while (remaining.length > 0) {
+        const u = connected[Math.floor(Math.random() * connected.length)];
+        const v = remaining[Math.floor(Math.random() * remaining.length)];
+        edgeKeys.add(keyOf(u, v));
+        edges.push([u, v]);
+        connected.push(v);
+        remaining.splice(remaining.indexOf(v), 1);
+      }
+
+      const candidates = shuffle(allPairs).filter(([a, b]) => !edgeKeys.has(keyOf(a, b)));
+      for (const [a, b] of candidates) {
+        if (edges.length >= desiredEdges) break;
+        edgeKeys.add(keyOf(a, b));
+        edges.push([a, b]);
+      }
+
+      const solution = buildEulerTrail(edges);
+      if (!solution) continue;
+
+      return { nodes, edges, solution };
+    }
+
+    return base;
+  };
 
   const handleStrokeNodeClick = (nodeId: number) => {
     if (isPaused || isSlacking || showSurprise) return;
 
     if (strokePath.length === 0) {
+      if (puzzle5OddNodes.length === 2 && !puzzle5OddNodes.includes(nodeId)) {
+        setIsVisualFeedback('WRONG');
+        return;
+      }
       // Start the path
       setStrokePath([nodeId]);
       return;
@@ -800,6 +1205,23 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
     if (isPaused || isSlacking || showSurprise) return;
     setStrokePath([]);
     setStrokeVisitedEdges(new Set());
+  };
+
+  const handleStrokeUndo = () => {
+    if (isPaused || isSlacking || showSurprise) return;
+
+    setStrokePath((prevPath) => {
+      if (prevPath.length < 2) return prevPath;
+      const last = prevPath[prevPath.length - 1];
+      const prev = prevPath[prevPath.length - 2];
+      const edgeKey = makeEdgeKey(last, prev);
+      setStrokeVisitedEdges((prevEdges) => {
+        const nextEdges = new Set(prevEdges);
+        nextEdges.delete(edgeKey);
+        return nextEdges;
+      });
+      return prevPath.slice(0, -1);
+    });
   };
 
   // ----------------------------------------------------
@@ -858,8 +1280,8 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
   };
 
   return (
-    <div className="relative flex flex-col justify-between h-full bg-black text-white border-4 border-white rounded-lg overflow-hidden select-none">
-      
+    <div className="relative flex flex-col justify-between h-full bg-stone-50 text-black overflow-hidden select-none">
+
       {/* Visual background shake indicator overlay */}
       {stress > 70 && (
         <div className="absolute inset-0 border-[6px] border-red-900/40 pointer-events-none z-40 animate-pulse" />
@@ -868,95 +1290,69 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
       {/* ----------------------------------------------------
           TOP NAVIGATION HEADER
           ---------------------------------------------------- */}
-      <div className="bg-neutral-950 border-b-2 border-neutral-800 p-3 z-10">
-        
-        {/* Scenario mini banner */}
-        <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400">
-          <span className="truncate max-w-[180px]">[ {level.title} ]</span>
-          <div className="flex items-center gap-2">
-            <Radio className="w-3.5 h-3.5 text-red-500 animate-pulse" />
-            <span>体质: {talent ? talent.name : '裸跑'}</span>
+      <div className="p-3 border-b-2 border-black bg-white z-10" style={{backgroundImage:'radial-gradient(#f1f1f1 1px, transparent 1px)', backgroundSize:'10px 10px'}}>
+
+        {/* Stage & Pause */}
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <span className="text-[8.5px] bg-black text-yellow-400 font-mono font-black tracking-widest px-2 py-0.5 select-none rounded-none border border-black shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] uppercase">STAGE 0{level.id}</span>
+            <h3 className="font-display font-black text-[13px] text-black mt-1 tracking-tight">{level.title}</h3>
           </div>
+          <button
+            id="btn-play-pause-toggle"
+            onClick={() => setIsPaused(!isPaused)}
+            className="bg-neutral-50 hover:bg-neutral-100 border-2 border-black text-black px-2.5 py-1 select-none text-[10px] font-mono rounded-none font-black shadow-[2px_2px_0px_#000000] cursor-pointer hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+          >
+            {isPaused ? '▶ 唤睡战意' : '⏸ 暂作修整'}
+          </button>
         </div>
 
-        {/* Dynamic Stress Progress Meter */}
-        <div className="mt-3 grid grid-cols-12 gap-2 items-center">
-          <div className="col-span-4 text-left">
-            <span className="text-[10px] text-neutral-500 block uppercase font-mono leading-none">逆风崩压值</span>
-            <span className={`text-[12px] font-black ${getStressTitle().color} font-mono block mt-0.5`}>
-              {stress}% / {stressMaxCap}% [{getStressTitle().label}]
+        {/* Stress Gauge */}
+        <div className="px-2 py-1.5 bg-white">
+          <div className="flex justify-between items-center text-[10px] font-mono mb-1">
+            <span className="font-semibold text-black">💀 脑压: <strong className={`font-black ${stress >= 75 ? 'text-red-600' : ''}`}>{stress}%</strong></span>
+            <span className="text-zinc-500 text-[9px] font-bold">
+              {stress <= 20 && '🧘 平缓'}{stress > 20 && stress <= 40 && '😳 轻浮'}{stress > 40 && stress <= 70 && '🥵 沸热'}{stress > 70 && '☠️ 濒崩'}
             </span>
           </div>
-
-          {/* Graphical custom segmented layout progress bar */}
-          <div className="col-span-8 bg-neutral-900 border border-neutral-700 h-4.5 rounded p-0.5 flex relative overflow-hidden">
-            <motion.div
-              className={`h-full rounded-sm ${
-                stress > 70 
-                  ? 'bg-red-600' 
-                  : stress > 40 
-                  ? 'bg-orange-500' 
-                  : 'bg-white'
-              }`}
-              style={{ width: `${Math.min((stress / stressMaxCap) * 100, 100)}%` }}
-              transition={{ duration: 0.1 }}
-            />
-            
-            {/* Split segments markers */}
-            <div className="absolute inset-y-0 left-1/5 w-px bg-black opacity-30" />
-            <div className="absolute inset-y-0 left-2/5 w-px bg-black opacity-30" />
-            <div className="absolute inset-y-0 left-3/5 w-px bg-black opacity-30" />
-            <div className="absolute inset-y-0 left-4/5 w-px bg-black opacity-30" />
+          <div className="w-full bg-neutral-200 h-3 border-2 border-black rounded-none relative overflow-hidden">
+            <div className={`h-full transition-all duration-300 ease-out ${stress >= 71 ? 'bg-red-600 animate-pulse' : stress >= 41 ? 'bg-orange-500' : 'bg-black'}`} style={{width:`${Math.min((stress / stressMaxCap) * 100, 100)}%`}} />
           </div>
         </div>
 
-        {/* Countdown Timer DDL & Controllers */}
-        <div className="mt-3 flex items-center justify-between bg-black/40 border border-neutral-900 p-1.5 rounded">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] bg-red-600/10 text-red-500 border border-red-950 px-1.5 py-0.5 rounded uppercase font-mono font-bold">
-              ⏰ DEADLINE
-            </span>
-            <span className={`text-xl font-mono font-bold tracking-widest ${remainingTime < 15 ? 'text-red-500 animate-pulse' : 'text-neutral-100'}`}>
-              {formattedTime()}
-            </span>
+        {/* Tickers */}
+        <div className="py-1.5 px-2 border-t border-black text-[10px] font-mono flex justify-between bg-zinc-50/50 select-none font-bold">
+          <div className="flex items-center gap-1">
+            <span>⏰</span>
+            <span className={`font-mono font-black tracking-tight ${remainingTime <= 15 ? 'text-red-600 animate-pulse bg-red-50 px-1 border border-red-300' : 'text-neutral-900'}`}>{formattedTime()}</span>
           </div>
-
-          <div className="flex gap-2">
-            {/* Pause trigger */}
-            <button
-              id="btn-play-pause-toggle"
-              onClick={() => setIsPaused(!isPaused)}
-              className="p-1 px-2.5 rounded border border-neutral-700 text-xs font-mono font-bold hover:bg-neutral-900 transition-colors cursor-pointer flex items-center gap-1 text-neutral-400 hover:text-white"
-            >
-              {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-              {isPaused ? '续' : '暂'}
-            </button>
-            <button
-              id="btn-play-back-setup"
-              onClick={onBack}
-              className="p-1 px-2 border border-neutral-800 text-[10px] font-mono hover:bg-neutral-950 text-neutral-500 hover:text-neutral-300 transition-colors"
-            >
-              弃权
-            </button>
+          <div className="flex items-center gap-1">
+            <span>✅</span>
+            <span className="text-zinc-500">COMBO:</span>
+            <span className="bg-emerald-50 text-emerald-700 border border-emerald-300 px-1 py-0.5 text-[9px] font-black rounded-sm">{consecutiveCorrect}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-red-600 font-bold">[体质]</span>
+            <span className="truncate max-w-[80px]">{talent ? talent.name : '裸跑'}</span>
           </div>
         </div>
 
-        {/* Live quote marquee style commentary terminal */}
-        <div className="mt-2.5 bg-[#080808] border border-neutral-900 rounded p-1.5 flex items-start gap-1.5">
-          <span className="text-[10px] font-mono text-neutral-500 bg-neutral-950 p-0.5 border border-neutral-900 rounded select-none shrink-0">
-            SYSTEM_LOG:
-          </span>
-          <p className="text-[10px] text-neutral-400 font-mono leading-relaxed truncate-2-lines whitespace-pre-line flex-1 min-w-0">
-            {floatingQuote}
-          </p>
-        </div>
+        {/* Live quote */}
+        {floatingQuote && (
+          <div className="mt-1 bg-stone-100 border border-stone-300 p-1 flex items-start gap-1">
+            <span className="text-[9px] font-mono text-neutral-500 bg-stone-200 px-1 border border-stone-300 select-none shrink-0 font-bold">SYS:</span>
+            <p className="text-[9px] text-neutral-600 font-mono leading-tight truncate flex-1 min-w-0">
+              {floatingQuote}
+            </p>
+          </div>
+        )}
 
       </div>
 
       {/* ----------------------------------------------------
           MIDDLE: MAIN ACTIVE PUZZLE PLAYGROUND
           ---------------------------------------------------- */}
-      <div className="relative flex-1 flex flex-col justify-center items-center bg-neutral-950 p-4 overflow-hidden min-h-[300px]">
+      <div className="relative flex-1 flex flex-col justify-center items-center bg-white p-4 overflow-hidden min-h-[300px]" style={{backgroundImage:'radial-gradient(#e5e5e5 1px, transparent 1px)', backgroundSize:'16px 16px'}}>
         
         {/* Dynamic Flash Visual Screen on Click */}
         {visualFlash === 'CORRECT' && (
@@ -969,139 +1365,131 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
         {/* Level instructions overlay */}
         <div className="text-center mb-3 select-none z-10">
           {level.id === 1 && (
-            <p className="text-[11px] font-mono text-neutral-400 flex items-center justify-center gap-1.5">
-              <span>当前寻找数字:</span>
-              <span className="text-sm font-black text-white bg-red-600/20 border border-red-500 px-2 py-0.5 rounded">
-                【 {schulteNext} 】
-              </span>
-              <span className="text-neutral-500">/ 25</span>
-            </p>
+            <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
+              <span>当前寻找目标:</span>
+              <span className="bg-black text-white px-2.5 py-0.5 rounded font-black text-sm animate-pulse">{schulteNext}</span>
+              <span>进度: {schulteNext - 1} / 25</span>
+            </div>
           )}
           {level.id === 2 && (
-            <p className="text-[11px] font-mono text-neutral-400">
-              {selectedSudokuIdx === null ? (
-                <span>✍️ 请先点击任意 <span className="text-white font-bold select-none">[空格子]</span> 开始填入数字</span>
-              ) : (
-                <span className="text-red-400">
-                  ⚡ 正在精修坐标 ({sudokuCells[selectedSudokuIdx].row + 1}, {sudokuCells[selectedSudokuIdx].col + 1})
-                </span>
-              )}
-            </p>
+            <div className="flex justify-between items-center px-1 py-1 mb-3 text-xs font-mono border-b border-black text-black">
+              <span>{selectedSudokuIdx === null ? '未选取' : `第${sudokuCells[selectedSudokuIdx].row + 1}行 第${sudokuCells[selectedSudokuIdx].col +1}列`}</span>
+              <span className="text-neutral-500">4×4 经典小九宫格</span>
+            </div>
           )}
           {level.id === 3 && (
-            <p className="text-[11px] font-mono text-neutral-400 flex items-center justify-center gap-1.5">
+            <p className="text-[11px] font-mono text-neutral-500 flex items-center justify-center gap-1.5 mb-2">
               <span>📦 点击空格旁的方块滑入 · 排列 1-8</span>
             </p>
           )}
           {level.id === 4 && (
-            <p className="text-[11px] font-mono text-neutral-400 flex items-center justify-center gap-1.5">
+            <p className="text-[11px] font-mono text-neutral-500 flex items-center justify-center gap-1.5 mb-2">
               <span>🔧 点击管道旋转 · 连通左右两侧</span>
             </p>
           )}
           {level.id === 5 && (
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-[11px] font-mono text-neutral-400">
-                ✏️ 依次点击节点走遍所有连线 · 剩余 {puzzle5.edges.length - strokeVisitedEdges.size} 条
-              </p>
-              {strokePath.length > 0 && (
-                <button
-                  onClick={handleStrokeReset}
-                  className="text-[10px] font-mono text-red-400 hover:text-red-300 cursor-pointer underline"
-                >
-                  ↩ 重置路径
-                </button>
-              )}
-            </div>
+            <p className="text-[11px] font-mono text-neutral-500 flex items-center justify-center gap-1.5 mb-2">
+              <span>✏️ 依次点击节点走遍所有连线</span>
+            </p>
           )}
           {level.id === 6 && (
-            <p className="text-[11px] font-mono text-neutral-400 flex items-center justify-center gap-1.5">
-              <span>🃏 翻牌配对 · 已配对 {memoryCards.filter(c => c.matched).length / 2} / 8</span>
+            <p className="text-[11px] font-mono text-neutral-500 flex items-center justify-center gap-1.5 mb-2">
+              <span>🃏 翻牌配对</span>
             </p>
           )}
         </div>
 
         {/* ----------------- GAME SCREEN: LEVEL 1 SCHULTE ----------------- */}
-        {level.id === 1 && (
-          <div className={`transition-all duration-200 w-full max-w-sm ${getGridDistortionClass()}`}>
-            <div className="grid grid-cols-5 gap-1.5 select-none">
-              {schulteNumbers.map((num, i) => {
-                const isAlreadyCleared = num < schulteNext;
-                const isAimIndex = num === schulteNext;
-                
-                // Stress symptom under Tier 4 (random blind/invisible values)
-                const isExtremityBlind = stress > 75 && Math.random() < 0.25;
+        {level.id === 1 && (() => {
+          const isSlight = stress > 20 && stress <= 40;
+          const isMedium = stress > 40 && stress <= 70;
+          const isSevere = stress > 70;
+          const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
+          const blurClass = isSevere ? 'blur-[2.5px] select-none scale-95' : isMedium ? 'blur-[1px] select-none' : '';
 
-                return (
-                  <motion.button
-                    disabled={isAlreadyCleared}
-                    id={`btn-schulte-grid-cell-${num}`}
-                    key={i}
-                    onClick={() => handleSchulteClick(num)}
-                    whileHover={{ scale: isAlreadyCleared ? 1 : 1.05 }}
-                    whileTap={{ scale: isAlreadyCleared ? 1 : 0.92 }}
-                    className={`aspect-square flex items-center justify-center border-2 rounded font-mono font-bold cursor-pointer text-sm md:text-base transition-colors ${
-                      isAlreadyCleared
-                        ? 'bg-neutral-900 border-neutral-800 text-neutral-600 saturate-0'
-                        : 'bg-black border-neutral-700 text-white hover:border-white hover:bg-neutral-900'
-                    }`}
-                  >
-                    {isExtremityBlind && !isAlreadyCleared ? '?' : num}
-                  </motion.button>
-                );
-              })}
+          return (
+            <div className="w-full max-w-sm mx-auto select-none mt-2">
+              <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
+                <span>当前寻找目标:</span>
+                <span className="bg-black text-white px-2.5 py-0.5 rounded font-black text-sm animate-pulse">{schulteNext}</span>
+                <span>进度: {schulteNext - 1} / 25</span>
+              </div>
+              <div className={`grid grid-cols-5 gap-1.5 p-2 bg-neutral-100 border-4 border-black shadow-[4px_4px_0px_#000000] rounded-none transition-all duration-300 ${shakeClass}`}>
+                {schulteNumbers.map((num, i) => {
+                  const isClicked = num < schulteNext;
+                  const isCorrupted = isSevere && !isClicked && (num % 3 === 0 || num % 7 === 1);
+                  const isHidden = schulteAmnesiaFlash && num >= schulteNext;
+                  return (
+                    <motion.button
+                      disabled={isClicked}
+                      id={`btn-schulte-grid-cell-${num}`}
+                      key={i}
+                      onClick={() => handleSchulteClick(num)}
+                      whileHover={{ scale: isClicked ? 1 : 1.05 }}
+                      whileTap={{ scale: isClicked ? 1 : 0.92 }}
+                      className={`aspect-square flex items-center justify-center font-mono font-bold text-base md:text-lg transition-all duration-150 rounded-none border-2 border-black
+                        ${isClicked ? 'bg-neutral-300 text-neutral-500 border-neutral-400 line-through cursor-not-allowed' : 'bg-white text-black active:bg-black active:text-white cursor-pointer hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)]'}
+                        ${blurClass} ${isSevere && !isClicked ? 'border-red-600 shadow-[1px_1px_0px_#dc2626]' : ''}`}
+                    >
+                      {isClicked ? '✓' : isHidden ? <span className="text-neutral-200">?</span> : isCorrupted ? <span className="text-red-600 font-extrabold animate-pulse">{['☠','Ø','⊗','⏾','☣','◆'][num % 6]}</span> : num}
+                    </motion.button>
+                  );
+                })}
+              </div>
+              {isSevere && <div className="text-center text-[10px] text-red-600 font-mono tracking-tight font-black mt-4 animate-bounce">▲ ⚠️ 脑压暴载！数字被乱码吞噬！请立即【摸鱼减压】恢复冷静！ ▲</div>}
+              {isMedium && !isSevere && <div className="text-center text-[10px] text-neutral-700 font-mono tracking-tight font-bold mt-4 animate-pulse">■ 压力攀升，视野轻微晃动，解题切忌忙乱 ■</div>}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ----------------- GAME SCREEN: LEVEL 2 SUDOKU ----------------- */}
-        {level.id === 2 && (
-          <div className={`transition-all duration-200 w-full max-w-xs ${getGridDistortionClass()}`}>
-            
-            {/* Sudoku 4x4 Grid Board */}
-            <div className="grid grid-cols-4 border-4 border-white select-none bg-black">
-              {sudokuCells.map((cell, idx) => {
-                const isSelected = selectedSudokuIdx === idx;
-                const isStatic = cell.starting;
-                const isWrong = sudokuErrorIdxs.includes(idx);
+        {level.id === 2 && (() => {
+          const isSlight = stress > 20 && stress <= 40;
+          const isMedium = stress > 40 && stress <= 70;
+          const isSevere = stress > 70;
+          const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
+          const blurClass = isSevere ? 'blur-[2px] scale-95' : isMedium ? 'blur-[0.5px]' : '';
 
-                // Thick sub-box borders coordinates mapping (4x4 has four 2x2 boxes)
-                const borderBottom = cell.row === 1 ? 'border-b-4 border-b-neutral-100' : 'border-b border-b-neutral-800';
-                const borderRight = cell.col === 1 ? 'border-r-4 border-r-neutral-100' : 'border-r border-r-neutral-800';
+          return (
+            <div className="w-full max-w-sm mx-auto select-none mt-2">
+              <div className="flex justify-between items-center px-1 py-1 mb-3 text-xs font-mono border-b border-black text-black">
+                <span>选定格子: {selectedSudokuIdx !== null ? `第${sudokuCells[selectedSudokuIdx].row + 1}行 第${sudokuCells[selectedSudokuIdx].col + 1}列` : '未选取'}</span>
+                <span className="text-neutral-500">4×4 经典小九宫格</span>
+              </div>
+              <div className={`grid grid-cols-4 gap-0 bg-black p-1 shadow-[4px_4px_0px_#000000] border-2 border-black transition-all duration-300 ${shakeClass}`}>
+                {sudokuCells.map((cell, idx) => {
+                  const isPreset = cell.starting;
+                  const isSelected = selectedSudokuIdx === idx;
+                  const isWrong = sudokuErrorIdxs.includes(idx);
+                  const borderBottom = cell.row === 1 ? 'border-b-4' : 'border-b';
+                  const borderRight = cell.col === 1 ? 'border-r-4' : 'border-r';
+                  const isCorrupted = isSevere && !isPreset && (cell.row * 2 + cell.col) % 4 === 1;
 
-                // Extreme stress dizzy blur indices
-                const isExtremitySpun = stress > 75 && Math.random() < 0.2;
-
-                return (
-                  <div
-                    id={`grid-sudoku-cell-${cell.row}-${cell.col}`}
-                    key={idx}
-                    onClick={() => handleSudokuCellClick(idx)}
-                    className={`aspect-square flex items-center justify-center font-mono text-base md:text-lg font-black cursor-pointer transition-all ${borderBottom} ${borderRight} ${
-                      isStatic 
-                        ? 'bg-neutral-800/60 text-neutral-300' 
-                        : isSelected 
-                        ? 'bg-white text-black font-extrabold focus:outline-none' 
-                        : isWrong 
-                        ? 'bg-red-950/60 text-red-500 animate-pulse border-red-500'
-                        : 'bg-black text-neutral-100 hover:bg-neutral-900'
-                    }`}
-                  >
-                    {isExtremitySpun && !isStatic ? '🌀' : cell.val !== null ? cell.val : ''}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Sudoku Input Dial Panel (renders only if they highlight a cell) */}
-            <div className="mt-4 bg-neutral-950 p-2 border border-neutral-900 rounded">
-              <div className="grid grid-cols-5 gap-1.5">
+                  return (
+                    <div
+                      id={`grid-sudoku-cell-${cell.row}-${cell.col}`}
+                      key={idx}
+                      onClick={() => handleSudokuCellClick(idx)}
+                      className={`aspect-square flex items-center justify-center font-mono font-bold text-xl md:text-2xl transition-all duration-200 border-black
+                        ${borderBottom} ${borderRight}
+                        ${isPreset ? 'bg-neutral-200 text-neutral-800 font-extrabold cursor-not-allowed' : isSelected ? 'bg-red-200 text-black border-red-600 animate-pulse' : isWrong ? 'bg-red-600 text-white animate-pulse font-black' : 'bg-white text-black hover:bg-neutral-50 cursor-pointer'}
+                        ${blurClass}`}
+                    >
+                      {isCorrupted ? <span className="text-red-600 text-xs font-black animate-ping">?!</span> : cell.val !== null ? cell.val : <span className="text-neutral-300 text-xs font-normal">.</span>}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Number Input Panel */}
+              <div className="mt-5 grid grid-cols-5 gap-1.5 px-1">
                 {[1, 2, 3, 4].map((num) => (
                   <button
                     disabled={selectedSudokuIdx === null}
                     id={`btn-sudoku-dial-input-${num}`}
                     key={num}
                     onClick={() => handleSudokuNumInput(num)}
-                    className="py-2.5 rounded bg-neutral-900 border border-neutral-700 text-xs text-white font-mono font-black hover:bg-white hover:text-black transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                    className={`h-12 flex items-center justify-center font-mono font-black text-lg border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-all duration-150
+                      ${selectedSudokuIdx === null ? 'bg-neutral-100 text-neutral-400 border-neutral-300 shadow-none cursor-not-allowed' : 'bg-white text-black active:bg-black active:text-white active:translate-y-0.5 cursor-pointer'}`}
                   >
                     {num}
                   </button>
@@ -1110,88 +1498,123 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
                   disabled={selectedSudokuIdx === null}
                   id="btn-sudoku-dial-input-clear"
                   onClick={() => handleSudokuNumInput(null)}
-                  className="py-2.5 rounded bg-red-950/60 border border-red-800 text-[10px] font-mono font-bold text-red-400 hover:bg-red-500 hover:text-black transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                  className={`h-12 flex items-center justify-center font-mono text-xs font-bold border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-all duration-150
+                    ${selectedSudokuIdx === null ? 'bg-neutral-100 text-neutral-400 border-neutral-300 shadow-none cursor-not-allowed' : 'bg-red-50 text-red-600 active:bg-red-600 active:text-white active:translate-y-0.5 cursor-pointer'}`}
                 >
                   清除
                 </button>
               </div>
+              {isSevere && <div className="text-center text-[10px] text-red-600 font-mono tracking-tight font-black mt-4 animate-bounce">☠️ 数度狂晃！思维严重错乱！错填一个即爆炸！建议【摸鱼】冷静！</div>}
+              {selectedSudokuIdx === null && !isPaused && <div className="text-center text-[10px] text-neutral-500 font-mono tracking-tight font-medium mt-3 animate-pulse">🔍 长按或点击方格中的【空位】，激活键盘填入数字 🔍</div>}
             </div>
-
-          </div>
-        )}
+          );
+        })()}
 
         {/* ----------------- GAME SCREEN: LEVEL 3 SLIDING PUZZLE ----------------- */}
-        {level.id === 3 && (
-          <div className={`transition-all duration-200 w-full max-w-xs ${getGridDistortionClass()}`}>
-            <div className="grid grid-cols-3 gap-1.5 select-none">
-              {slideBoard.map((val, idx) => {
-                const isEmpty = val === 0;
-                const isExtremityBlind = stress > 75 && !isEmpty && Math.random() < 0.2;
-                return (
-                  <motion.button
-                    key={idx}
-                    disabled={isEmpty}
-                    onClick={() => handleSlideClick(idx)}
-                    whileHover={{ scale: isEmpty ? 1 : 1.05 }}
-                    whileTap={{ scale: isEmpty ? 1 : 0.92 }}
-                    className={`aspect-square flex items-center justify-center border-2 rounded font-mono font-black cursor-pointer text-lg md:text-xl transition-all ${
-                      isEmpty
-                        ? 'bg-neutral-950 border-neutral-900'
-                        : 'bg-black border-neutral-600 text-white hover:border-white hover:bg-neutral-900'
-                    }`}
-                  >
-                    {isEmpty ? '' : isExtremityBlind ? '?' : val}
-                  </motion.button>
-                );
-              })}
+        {level.id === 3 && (() => {
+          const isSlight = stress > 20 && stress <= 40;
+          const isMedium = stress > 40 && stress <= 70;
+          const isSevere = stress > 70;
+          const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
+
+          return (
+            <div className="w-full max-w-xs mx-auto select-none mt-2">
+              <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
+                <span>📦 点击空格旁的方块滑入</span>
+                <span className="text-neutral-500">排列 1-8</span>
+              </div>
+              <div className={`grid grid-cols-3 gap-1.5 p-2 bg-neutral-100 border-4 border-black shadow-[4px_4px_0px_#000000] rounded-none transition-all duration-300 ${shakeClass}`}>
+                {slideBoard.map((val, idx) => {
+                  const isEmpty = val === 0;
+                  const isExtremityBlind = isSevere && !isEmpty && Math.random() < 0.2;
+                  return (
+                    <motion.button
+                      key={idx}
+                      disabled={isEmpty}
+                      onClick={() => handleSlideClick(idx)}
+                      whileHover={{ scale: isEmpty ? 1 : 1.05 }}
+                      whileTap={{ scale: isEmpty ? 1 : 0.92 }}
+                      className={`aspect-square flex items-center justify-center font-mono font-bold text-base md:text-lg transition-all duration-150 rounded-none border-2 border-black
+                        ${isEmpty
+                          ? 'bg-neutral-200 text-neutral-400 border-neutral-300 cursor-not-allowed'
+                          : 'bg-white text-black active:bg-black active:text-white cursor-pointer hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)]'
+                        }`}
+                    >
+                      {isEmpty ? '' : isExtremityBlind ? '?' : val}
+                    </motion.button>
+                  );
+                })}
+              </div>
+              {isSevere && <div className="text-center text-[10px] text-red-600 font-mono tracking-tight font-black mt-4 animate-bounce">▲ ⚠️ 脑压暴载！视野剧烈晃动！ ▲</div>}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ----------------- GAME SCREEN: LEVEL 4 PIPE PUZZLE ----------------- */}
-        {level.id === 4 && (
-          <div className={`transition-all duration-200 w-full max-w-xs ${getGridDistortionClass()}`}>
-            <div className="grid grid-cols-4 gap-1 select-none">
-              {pipeCells.map((cell, idx) => {
-                if (cell.type === 'empty') {
-                  return <div key={idx} className="aspect-square bg-neutral-950 border border-neutral-900 rounded" />;
-                }
-                const rotation = pipeRotations[idx];
-                const conns = getPipeConnections(cell.type, rotation);
-                // Check if this cell is connected to the left edge (for glow)
-                const isExtremityBlind = stress > 75 && Math.random() < 0.15;
+        {level.id === 4 && (() => {
+          const isSlight = stress > 20 && stress <= 40;
+          const isMedium = stress > 40 && stress <= 70;
+          const isSevere = stress > 70;
+          const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
 
-                // Render pipe shape using CSS borders/transforms
-                const pipeChars: Record<PipeType, string> = {
-                  empty: '',
-                  straight: '┃',
-                  corner: '┗',
-                  tee: '┣',
-                  cross: '╋',
-                };
-                const displayChar = isExtremityBlind ? '?' : pipeChars[cell.type];
+          return (
+            <div className="w-full max-w-xs mx-auto select-none mt-2">
+              <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
+                <span>🔧 点击管道旋转</span>
+                <span className="text-neutral-500">连通左右两侧</span>
+              </div>
+              <div className={`grid grid-cols-4 gap-1 p-2 bg-neutral-100 border-4 border-black shadow-[4px_4px_0px_#000000] rounded-none transition-all duration-300 ${shakeClass}`}>
+                {pipeCells.map((cell, idx) => {
+                  if (cell.type === 'empty') {
+                    return <div key={idx} className="aspect-square bg-neutral-200 border-2 border-neutral-300" />;
+                  }
+                  const rotation = pipeRotations[idx];
+                  const isExtremityBlind = isSevere && Math.random() < 0.15;
+                  const isPowered = pipePoweredIdxs.includes(idx);
+                  const isSource = idx === pipeSourceIdx;
+                  const isSink = idx === pipeSinkIdx;
 
-                return (
-                  <motion.button
-                    key={idx}
-                    onClick={() => handlePipeClick(idx)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.92 }}
-                    className={`aspect-square flex items-center justify-center border-2 rounded font-mono font-black cursor-pointer text-xl md:text-2xl transition-all bg-black border-neutral-700 text-white hover:border-white hover:bg-neutral-900`}
-                    style={{ transform: `rotate(${rotation * 90}deg)` }}
-                  >
-                    {displayChar}
-                  </motion.button>
-                );
-              })}
+                  const pipeChars: Record<PipeType, string> = {
+                    empty: '',
+                    straight: '┃',
+                    corner: '┗',
+                    tee: '┣',
+                    cross: '╋',
+                  };
+                  const displayChar = isExtremityBlind ? '?' : pipeChars[cell.type];
+                  const borderClass = isSource ? 'border-sky-500' : isSink ? 'border-emerald-500' : isPowered ? 'border-sky-400' : 'border-black';
+                  const bgClass = isPowered ? 'bg-sky-50' : 'bg-white';
+
+                  return (
+                    <motion.button
+                      key={idx}
+                      onClick={() => handlePipeClick(idx)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.92 }}
+                      className={`relative aspect-square flex items-center justify-center border-2 rounded-none font-mono font-black cursor-pointer text-xl md:text-2xl transition-all text-black active:bg-black active:text-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)] ${bgClass} ${borderClass}`}
+                      animate={{ rotate: rotation * 90 }}
+                      transition={{ duration: 0.12, ease: 'easeOut' }}
+                    >
+                      {isSource && <span className="absolute left-1 top-1 w-1.5 h-1.5 rounded-full bg-sky-400" />}
+                      {isSink && <span className="absolute right-1 top-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                      {displayChar}
+                    </motion.button>
+                  );
+                })}
+              </div>
+              {isSevere && <div className="text-center text-[10px] text-red-600 font-mono tracking-tight font-black mt-4 animate-bounce">▲ ⚠️ 脑压暴载！管道开始剧烈晃动！ ▲</div>}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ----------------- GAME SCREEN: LEVEL 5 ONE-STROKE ----------------- */}
         {level.id === 5 && (
-          <div className={`transition-all duration-200 w-full max-w-sm ${getGridDistortionClass()}`}>
-            <div className="relative w-full" style={{ aspectRatio: '1/0.75' }}>
+          <div className="w-full max-w-sm mx-auto select-none mt-2">
+            <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
+              <span>✏️ 依次点击节点走遍所有连线</span>
+              <span className="text-neutral-500">剩余 {puzzle5.edges.length - strokeVisitedEdges.size} 条</span>
+            </div>
+            <div className={`relative w-full bg-neutral-100 border-4 border-black shadow-[4px_4px_0px_#000000] p-2 transition-all duration-300 ${getGridDistortionClass()}`} style={{ aspectRatio: '1/0.75' }}>
               {/* Draw edges as SVG lines */}
               <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }}>
                 {puzzle5.edges.map(([a, b], i) => {
@@ -1206,7 +1629,7 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
                       y1={`${nodeA.y}%`}
                       x2={`${nodeB.x}%`}
                       y2={`${nodeB.y}%`}
-                      stroke={visited ? '#22c55e' : '#555'}
+                      stroke={visited ? '#22c55e' : '#aaa'}
                       strokeWidth={visited ? 4 : 2}
                       strokeLinecap="round"
                     />
@@ -1244,13 +1667,13 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
                     onClick={() => handleStrokeNodeClick(node.id)}
                     whileHover={{ scale: 1.15 }}
                     whileTap={{ scale: 0.9 }}
-                    className="absolute w-10 h-10 md:w-12 md:h-12 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center font-mono font-black text-sm border-2 cursor-pointer transition-all z-10"
+                    className="absolute w-10 h-10 md:w-12 md:h-12 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center font-mono font-black text-sm border-2 border-black cursor-pointer transition-all z-10"
                     style={{
                       left: `${node.x}%`,
                       top: `${node.y}%`,
-                      backgroundColor: isCurrentHead ? '#ef4444' : isInPath ? '#22c55e' : '#000',
-                      borderColor: isCurrentHead ? '#fff' : isInPath ? '#22c55e' : '#666',
-                      color: isCurrentHead || isInPath ? '#000' : '#fff',
+                      backgroundColor: isCurrentHead ? '#ef4444' : isInPath ? '#22c55e' : '#fff',
+                      borderColor: '#000',
+                      color: isCurrentHead || isInPath ? '#000' : '#000',
                     }}
                   >
                     {isExtremityBlind ? '?' : node.id}
@@ -1258,54 +1681,84 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
                 );
               })}
             </div>
+            {/* Undo/Reset buttons */}
+            {strokePath.length > 0 && (
+              <div className="flex items-center justify-center gap-3 mt-2">
+                {strokePath.length > 1 && (
+                  <button
+                    id="btn-stroke-undo"
+                    onClick={handleStrokeUndo}
+                    className="text-[10px] font-mono text-neutral-500 hover:text-black cursor-pointer underline inline-flex items-center gap-1"
+                  >
+                    ↩ 撤回
+                  </button>
+                )}
+                <button
+                  onClick={handleStrokeReset}
+                  className="text-[10px] font-mono text-red-500 hover:text-red-400 cursor-pointer underline"
+                >
+                  ↩ 重置路径
+                </button>
+              </div>
+            )}
+            {stress > 70 && <div className="text-center text-[10px] text-red-600 font-mono tracking-tight font-black mt-4 animate-bounce">▲ ⚠️ 脑压暴载！节点剧烈晃动！ ▲</div>}
           </div>
         )}
 
         {/* ----------------- GAME SCREEN: LEVEL 6 MEMORY MATCH ----------------- */}
-        {level.id === 6 && (
-          <div className={`transition-all duration-200 w-full max-w-xs ${getGridDistortionClass()}`}>
-            <div className="grid grid-cols-4 gap-1.5 select-none">
-              {memoryCards.map((card, idx) => {
-                const isExtremityBlind = stress > 75 && !card.faceUp && !card.matched && Math.random() < 0.15;
-                return (
-                  <motion.button
-                    key={card.id}
-                    onClick={() => handleMemoryCardClick(idx)}
-                    whileHover={{ scale: card.faceUp || card.matched ? 1 : 1.05 }}
-                    whileTap={{ scale: card.faceUp || card.matched ? 1 : 0.92 }}
-                    className={`aspect-square flex items-center justify-center border-2 rounded font-mono font-bold cursor-pointer text-lg md:text-xl transition-all ${
-                      card.matched
-                        ? 'bg-emerald-950 border-emerald-600 text-emerald-400'
-                        : card.faceUp
-                        ? 'bg-white border-white text-black'
-                        : 'bg-black border-neutral-700 text-white hover:border-white hover:bg-neutral-900'
-                    }`}
-                  >
-                    {card.faceUp || card.matched
-                      ? isExtremityBlind ? '?' : card.emoji
-                      : '?'}
-                  </motion.button>
-                );
-              })}
+        {level.id === 6 && (() => {
+          const isSlight = stress > 20 && stress <= 40;
+          const isMedium = stress > 40 && stress <= 70;
+          const isSevere = stress > 70;
+          const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
+
+          return (
+            <div className="w-full max-w-xs mx-auto select-none mt-2">
+              <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
+                <span>🃏 翻牌配对</span>
+                <span className="text-neutral-500">已配对 {memoryCards.filter(c => c.matched).length / 2} / 8</span>
+              </div>
+              <div className={`grid grid-cols-4 gap-1.5 p-2 bg-neutral-100 border-4 border-black shadow-[4px_4px_0px_#000000] rounded-none transition-all duration-300 ${shakeClass}`}>
+                {memoryCards.map((card, idx) => {
+                  const isExtremityBlind = isSevere && !card.faceUp && !card.matched && Math.random() < 0.15;
+                  return (
+                    <motion.button
+                      key={card.id}
+                      onClick={() => handleMemoryCardClick(idx)}
+                      whileHover={{ scale: card.faceUp || card.matched ? 1 : 1.05 }}
+                      whileTap={{ scale: card.faceUp || card.matched ? 1 : 0.92 }}
+                      className={`aspect-square flex items-center justify-center border-2 border-black rounded-none font-mono font-bold cursor-pointer text-lg md:text-xl transition-all duration-150
+                        ${card.matched
+                          ? 'bg-emerald-100 border-emerald-400 text-emerald-700'
+                          : card.faceUp
+                          ? 'bg-white border-red-400 text-black'
+                          : 'bg-white text-black active:bg-black active:text-white cursor-pointer hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)]'
+                        }`}
+                    >
+                      {card.faceUp || card.matched
+                        ? isExtremityBlind ? '?' : card.emoji
+                        : '?'}
+                    </motion.button>
+                  );
+                })}
+              </div>
+              {isSevere && <div className="text-center text-[10px] text-red-600 font-mono tracking-tight font-black mt-4 animate-bounce">▲ ⚠️ 脑压暴载！牌面剧烈晃动！ ▲</div>}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ----------------- 100% EXTREME MELTDOWN CRITICAL ALERT ----------------- */}
         {stress >= 100 && (
-          <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 z-30 bg-red-600 text-black border-4 border-white p-4 rounded text-center shadow-[4px_4px_0px_#000000] animate-pulse">
-            <AlertOctagon className="w-10 h-10 mx-auto text-black animate-bounce" />
-            <h3 className="text-base font-black font-mono uppercase mt-2">
-              🚨 警告：脑神经元全面暴毙 🚨
+          <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 z-30 bg-red-600 text-white border-[4px] border-black p-3 text-center shadow-[6px_6px_0px_#000000] animate-pulse">
+            <span className="text-3xl block mb-1">🚨</span>
+            <h3 className="text-sm font-black font-display uppercase text-yellow-300">
+              脑压全面暴毙！
             </h3>
-            <p className="text-xs font-bold leading-relaxed mt-1">
-              心态崩溃满档！CPU正在严重烧损融化...
-            </p>
-            <div className="mt-3 inline-block bg-black text-white font-mono font-black text-xl px-4 py-1.5 rounded-sm">
-              崩溃倒计时: {stressMeltCounter}秒 !!!
+            <div className="mt-2 inline-block bg-black text-yellow-400 font-mono font-black text-lg px-3 py-1 border-2 border-black">
+              崩溃倒计时: {stressMeltCounter}s !!!
             </div>
-            <p className="text-[10px] text-zinc-900 font-bold italic mt-2.5">
-              快摸鱼减压！否则直接心态破防失败！
+            <p className="text-[10px] text-red-200 font-bold mt-1.5">
+              快摸鱼减压！否则失败！
             </p>
           </div>
         )}
@@ -1317,35 +1770,32 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-neutral-950/95 z-30 flex flex-col justify-center items-center p-6 text-center"
+              className="absolute inset-0 bg-white/95 z-30 flex flex-col justify-center items-center p-6 text-center"
             >
-              <div className="relative shadow-2xl p-6 bg-black border-3 border-dashed border-sky-500 rounded max-w-sm">
-                
-                {/* Floating fun tea cup bubble */}
+              <div className="border-[4px] border-black p-4 bg-amber-50 relative max-w-xs shadow-[6px_6px_0px_#000000] -rotate-1">
                 <motion.div
                   animate={{ y: [-5, 5, -5] }}
                   transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="w-16 h-16 mx-auto flex items-center justify-center bg-sky-950 border-2 border-sky-500 rounded-full mb-3"
+                  className="w-14 h-14 mx-auto flex items-center justify-center bg-amber-100 border-2 border-amber-400 rounded-full mb-2"
                 >
-                  <Coffee className="w-8 h-8 text-sky-400" />
+                  <span className="text-2xl">☕</span>
                 </motion.div>
 
-                {/* Animated progress loop */}
-                <p className="text-xs font-black text-sky-400 font-mono tracking-widest uppercase">
-                  ⚡ 摸鱼减压时光中 (Slacking Off...)
-                </p>
-                <p className="text-[11px] text-neutral-400 font-serif leading-relaxed mt-2.5">
-                  “短暂休息调整心态，虽然虚度了时光…”
-                </p>
+                <h4 className="text-sm font-display font-black text-black tracking-tight uppercase">🍔 摸鱼冷却中...</h4>
 
-                {/* Counter displaying */}
-                <div className="my-4 text-3xl font-mono font-black text-white">
+                <div className="bg-white border-2 border-black p-2 my-3 text-[10px] font-mono select-none text-zinc-800 italic leading-snug">
+                  {slackTimeLeft > 3 && '"滋溜一口冰柠檬红茶..."'}
+                  {slackTimeLeft <= 3 && slackTimeLeft > 2 && '"假装盯着天花板发呆..."'}
+                  {slackTimeLeft <= 2 && slackTimeLeft > 1 && '"心态要稳，下一题全对..."'}
+                  {slackTimeLeft <= 1 && '"收起饮料！即将续战！"'}
+                </div>
+
+                <div className="my-2 text-3xl font-mono font-black text-black">
                   {slackTimeLeft}s
                 </div>
 
-                {/* Slack penalties caution */}
-                <div className="bg-sky-950/40 p-2 rounded border border-sky-900 text-[10px] text-sky-300 font-mono">
-                  代价：DDL 危机缩短 -15 秒 ⏱️ 正在剧烈冷却压力...
+                <div className="bg-red-50 text-red-600 p-1 border border-red-300 font-mono text-[8px] font-black animate-pulse text-center">
+                  ⚠️ 代价：-15s DDL时限
                 </div>
               </div>
             </motion.div>
@@ -1359,75 +1809,51 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="absolute inset-4 z-40 bg-black border-4 border-red-600 rounded p-4 flex flex-col justify-between"
+              className="absolute inset-0 z-40 bg-zinc-950/80 flex flex-col justify-center items-center p-6 text-center backdrop-blur-[2px]"
             >
-              <div className="flex items-center gap-2 border-b border-red-950 pb-2 mb-2">
-                <BellRing className="w-6 h-6 text-red-500 animate-pulse animate-bounce" />
-                <div>
-                  <h3 className="text-xs font-black text-red-500 font-mono">
-                    ⚠️ CRITICAL AUDIT: 导员查勤来袭！
-                  </h3>
-                  <span className="text-[9px] text-neutral-500 font-mono">INSTRUCTOR SURPRISE CHECK-IN</span>
+              <div className="bg-red-600 border-[4px] border-black p-4 text-white max-w-xs shadow-[6px_6px_0px_#000000] rotate-1">
+                <span className="text-3xl block mb-1 animate-bounce">⚠️</span>
+                <h3 className="font-display font-black text-base tracking-wider text-yellow-300 uppercase">☠ 导员突击查岗！</h3>
+                <p className="text-[10px] font-mono my-2 text-red-100 font-bold">立即假装认真看书！</p>
+
+                <div className="w-full bg-red-950 border-2 border-black h-2.5 my-2 overflow-hidden rounded-none">
+                  <div className="bg-yellow-400 h-full transition-all duration-100 ease-linear" style={{width:`${(surpriseTimeLeft / surpriseBaseTime) * 100}%`}} />
                 </div>
-              </div>
+                <div className="text-[10px] font-mono font-black mb-2 text-yellow-400 animate-pulse">反应时间: {surpriseTimeLeft}s</div>
 
-              {/* Central check scenario */}
-              <div className="my-auto text-center py-2">
-                <p className="text-[12px] text-neutral-300 leading-relaxed font-serif pl-1 bg-red-950/20 p-2.5 border border-red-950 rounded">
-                  “导员走到窗边张望！班级群发了在线打卡！”
-                </p>
-
-                {/* Action seconds feedback */}
-                <div className="mt-4 flex flex-col items-center">
-                  <span className="text-[9px] text-neutral-400 font-mono uppercase">你仅剩下极限反应时间：</span>
-                  <span className="text-3xl font-black text-red-500 font-mono mt-1">
-                    {surpriseTimeLeft}s
-                  </span>
-                  
-                  {/* Visual progress shrinking line */}
-                  <div className="w-full max-w-xs bg-neutral-900 border border-neutral-800 h-2 mt-2 rounded">
-                    <div
-                      className="bg-red-500 h-full rounded transition-all duration-75"
-                      style={{ width: `${(surpriseTimeLeft / 3.0) * 100}%` }}
-                    />
+                {/* Status resolved banner */}
+                {surpriseStatusMsg && (
+                  <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+                    {surpriseStatusMsg === 'SUCCESS' ? (
+                      <div className="text-center text-emerald-400">
+                        <span className="text-3xl block mb-1">✅</span>
+                        <h4 className="text-sm font-black font-mono">打卡成功！</h4>
+                      </div>
+                    ) : (
+                      <div className="text-center text-red-500">
+                        <span className="text-3xl block mb-1">💀</span>
+                        <h4 className="text-sm font-black font-mono">暴露穿帮！</h4>
+                      </div>
+                    )}
                   </div>
+                )}
+
+                {/* Multi Choice inputs */}
+                <div className="mt-1 z-10 flex flex-col gap-1.5">
+                  {surpriseOptions.map((opt, idx) => (
+                    <button
+                      id={`btn-surprise-audit-option-${idx}`}
+                      disabled={surpriseStatusMsg !== ''}
+                      key={idx}
+                      onClick={() => handleSurpriseOptionClick(idx)}
+                      className="w-full text-left p-2.5 border-2 border-black bg-yellow-400 text-black text-[11px] font-mono font-bold hover:bg-yellow-300 transition-colors cursor-pointer active:translate-y-0.5 active:shadow-none shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+                    >
+                      {opt}
+                    </button>
+                  ))}
                 </div>
+
               </div>
-
-              {/* Status resolved banner */}
-              {surpriseStatusMsg && (
-                <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
-                  {surpriseStatusMsg === 'SUCCESS' ? (
-                    <div className="text-center text-emerald-400">
-                      <ShieldCheck className="w-12 h-12 text-emerald-400 mx-auto" />
-                      <h4 className="text-sm font-black font-mono mt-2">打卡成功！躲过一劫！</h4>
-                      <p className="text-xs text-neutral-500 mt-1">逆风值得到极佳舒缓降温</p>
-                    </div>
-                  ) : (
-                    <div className="text-center text-red-500">
-                      <Skull className="w-12 h-12 text-red-600 mx-auto" />
-                      <h4 className="text-sm font-black font-mono mt-2">暴露穿帮！点名通报批评！</h4>
-                      <p className="text-xs text-neutral-500 mt-1">逆风崩阻值加剧暴涨</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Multi Choice inputs (must click correct reaction buttons) */}
-              <div className="space-y-2 mt-2 z-10">
-                {surpriseOptions.map((opt, idx) => (
-                  <button
-                    id={`btn-surprise-audit-option-${idx}`}
-                    disabled={surpriseStatusMsg !== ''}
-                    key={idx}
-                    onClick={() => handleSurpriseOptionClick(idx)}
-                    className="w-full text-left p-2.5 border-2 border-neutral-800 bg-neutral-950 rounded text-xs font-mono font-bold hover:bg-white hover:text-black transition-colors cursor-pointer text-neutral-200"
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-
             </motion.div>
           )}
         </AnimatePresence>
@@ -1439,31 +1865,26 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/90 z-30 flex flex-col justify-center items-center p-6 text-center"
+              className="absolute inset-0 z-30 bg-stone-900/45 flex flex-col justify-center items-center text-center p-6 backdrop-blur-[2px]"
             >
-              <div className="border-2 border-white p-6 bg-neutral-950 rounded max-w-xs shadow-2xl">
-                <Pause className="w-10 h-10 text-white mx-auto mb-3 animate-pulse" />
-                <h3 className="text-lg font-black font-mono uppercase tracking-widest">
-                  游戏已暂停
-                </h3>
-                <p className="text-xs text-neutral-400 mt-2 font-serif leading-relaxed">
-                  “暂时的逃避可以暂缓压力，但逃避无法化解逆风。”
-                </p>
+              <div className="border-[4px] border-black p-4 bg-white max-w-xs shadow-[5px_5px_0px_#000000] rotate-1">
+                <h4 className="font-display font-black text-sm text-black uppercase">⏸ 暂停修整</h4>
+                <p className="text-[10px] text-zinc-600 font-mono my-1.5 leading-relaxed">时间已冻结。整理手感以续战。</p>
 
-                <div className="mt-5 space-y-2.5">
+                <div className="mt-4 space-y-2">
                   <button
                     id="btn-play-pause-resume"
                     onClick={() => setIsPaused(false)}
-                    className="w-full py-2 border-2 border-white bg-white text-black font-mono font-bold text-xs hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer"
+                    className="w-full bg-black hover:bg-neutral-900 text-white font-display font-black py-2.5 border-2 border-black text-xs cursor-pointer rounded-none shadow-[2px_2px_0px_rgba(0,0,0,0.15)] active:translate-y-0.5 active:shadow-none transition-all"
                   >
-                    恢复逆袭对局
+                    【 解锁续战 】
                   </button>
                   <button
                     id="btn-play-pause-giveup"
                     onClick={onBack}
-                    className="w-full py-2 bg-neutral-900 border border-neutral-700 text-neutral-400 font-mono text-xs hover:text-white hover:bg-black transition-colors"
+                    className="w-full bg-stone-200 hover:bg-stone-300 border border-neutral-400 text-zinc-700 font-mono font-medium py-2 text-[10px] rounded-none cursor-pointer transition-colors"
                   >
-                    返回主大厅
+                    返回大厅
                   </button>
                 </div>
               </div>
@@ -1476,47 +1897,49 @@ export function GameMainView({ level, talent, onWin, onLose, onBack }: GameMainV
       {/* ----------------------------------------------------
           BOTTOM CONTROLLER FOOTER: SLACK OFF SYSTEM
           ---------------------------------------------------- */}
-      <div className="bg-neutral-950 border-t-2 border-neutral-800 p-4 shrink-0 flex items-center justify-between">
-        
-        {/* Combo Streak counter indicators */}
-        <div>
-          <span className="text-[9px] text-neutral-500 block uppercase font-mono">连斩恢复进度</span>
-          <div className="flex gap-1 mt-1">
+      <div className="p-2.5 px-4 border-t-4 border-black bg-stone-200 flex justify-between items-center shadow-[0px_-2px_0px_rgba(0,0,0,1)] shrink-0">
+
+        {/* Combo indicators */}
+        <div className="text-[10px] font-mono text-zinc-600 shrink-0 leading-tight">
+          <span className="font-extrabold text-black block text-[10px]">[人格] {talent ? talent.name : '无'}</span>
+          <div className="flex gap-1 mt-0.5">
             {[0, 1, 2].map((dotIdx) => {
               const active = consecutiveCorrect > dotIdx;
               const isComboProne = talent?.id === 'panic_prone';
               return (
                 <div
                   key={dotIdx}
-                  className={`w-3.5 h-3.5 rounded-sm border ${
-                    active 
-                      ? isComboProne 
-                        ? 'bg-amber-500 border-amber-400' 
-                        : 'bg-white border-white' 
-                      : 'bg-transparent border-neutral-800'
+                  className={`w-2.5 h-2.5 rounded-sm border border-black ${
+                    active
+                      ? isComboProne
+                        ? 'bg-amber-500'
+                        : 'bg-black'
+                      : 'bg-transparent'
                   }`}
                 />
               );
             })}
           </div>
-          <span className="text-[8px] text-neutral-500 font-mono block mt-1">
-            (3连正确 大幅冷却 -30 压力)
-          </span>
+          <span className="text-[7px] text-zinc-500 font-mono block">3连→ -30压力</span>
         </div>
 
-        {/* Dynamic Slack off triggers */}
+        {/* Slack off button */}
         <motion.button
           id="btn-slack-off-trigger"
           disabled={isPaused || isSlacking || showSurprise}
           onClick={triggerSlackOff}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-1.5 bg-black py-3 px-4 rounded border-2 border-white hover:bg-white hover:text-black transition-all cursor-pointer shadow-[3px_3px_0px_#0284c7] disabled:opacity-30 disabled:pointer-events-none"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={`h-[40px] px-3 font-mono font-black text-[11px] tracking-tight border-2 border-black flex items-center gap-1.5 transition-all duration-150 shadow-[2.5px_2.5px_0px_rgba(0,0,0,1)] ${
+            isPaused || isSlacking || showSurprise
+              ? 'bg-stone-100 text-stone-400 border-stone-300 shadow-none cursor-not-allowed'
+              : 'bg-yellow-400 hover:bg-yellow-300 text-black cursor-pointer active:translate-y-0.5 active:shadow-none'
+          }`}
         >
-          <Coffee className="w-4 h-4" />
-          <div className="text-left font-mono">
-            <span className="font-extrabold text-[12px] block leading-none">摸鱼减压🥤</span>
-            <span className="text-[8px] text-neutral-400 block mt-0.5 leading-none">代价: DDL-15秒 // 冷却50%</span>
+          <span className="shrink-0 text-amber-900">☕</span>
+          <div className="text-left leading-none select-none">
+            <span className="block font-black text-[10px] font-display">【摸鱼自救】</span>
+            <span className="text-[7px] font-normal leading-none block font-mono text-zinc-600">降压 / -15s</span>
           </div>
         </motion.button>
 
