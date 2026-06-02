@@ -757,38 +757,24 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
   const triggerSlackOff = () => {
     if (isPaused || isSlacking || showSurprise) return;
 
-    setIsSlacking(true);
     setSlackedOffCount((prev) => prev + 1);
-    setSlackTimeLeft(5);
     setConsecutiveCorrect(0);
 
-    // Apply the 15s absolute time cost immediately
+    // 扣除5秒时间
     setRemainingTime((prev) => {
-      const penalty = prev - 15;
+      const penalty = prev - 5;
       return penalty < 0 ? 0 : penalty;
     });
 
-    // Start 10 seconds rapid relief timer
-    let ticks = 5;
-    const slackTimer = setInterval(() => {
-      ticks -= 1;
-      setSlackTimeLeft(ticks);
+    // 立即减少20%压力
+    let relief = -20;
+    // 天赋加成
+    if (talent?.id === 'milk_tea_addict') relief = Math.round(relief * 1.5); // 奶茶续命 +50%
+    if (talent?.id === 'low_sugar') relief = Math.round(relief * 1.3); // 低血糖 +30%
+    adjustStressValue(relief);
 
-      // Stress relief speed - doubled if "low blood sugar hand shack" active
-      const normalRelief = -5;
-      let multiplier = talent?.id === 'low_sugar' ? 2.0 : 1.0;
-      // Milk tea addict: +80% recovery
-      if (talent?.id === 'milk_tea_addict') {
-        multiplier = 1.8;
-      }
-      adjustStressValue(normalRelief * multiplier);
-
-      if (ticks <= 0) {
-        clearInterval(slackTimer);
-        setIsSlacking(false);
-        setFloatingQuote('⚡ 抽身摸鱼归来！脑子勉强冷下来了，冲！');
-      }
-    }, 1000);
+    setFloatingQuote('☕ 摸鱼5秒，压力减轻了！');
+    playClick();
   };
 
   // ----------------------------------------------------
@@ -2387,7 +2373,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
             <span className="text-lg">☕</span>
             <span className="text-[12px] font-bold tracking-tight">摸鱼</span>
           </div>
-          <span className="text-[8px] opacity-70">-15% 压力</span>
+          <span className="text-[8px] opacity-70">-20% · -5s</span>
         </motion.button>
 
         {/* Restart */}
