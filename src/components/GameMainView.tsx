@@ -1764,7 +1764,6 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
                       }}
                       className={`keycap aspect-square flex items-center justify-center text-xl font-bold font-mono
                         ${isClicked ? 'bg-neutral-300 text-neutral-500 border-neutral-400 line-through cursor-not-allowed shadow-none' : 'cursor-pointer'}
-                        ${num === schulteNext && !isClicked ? 'keycap-active' : ''}
                         ${blurClass} ${isSevere && !isClicked ? 'border-red-600' : ''}
                         ${showHint && hintTarget === num && !isClicked ? 'ring-4 ring-yellow-400 ring-offset-2 bg-yellow-100 border-yellow-500 animate-bounce' : ''}`}
                     >

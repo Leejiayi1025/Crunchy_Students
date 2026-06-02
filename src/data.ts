@@ -51,8 +51,8 @@ export const getLevelDifficultyConfig = (
     if (levelId === 1) {
       if (difficulty === 'EASY') return 40;
       if (difficulty === 'MEDIUM') return 30;
-      if (difficulty === 'HARD') return 30;
-      return 20;
+      if (difficulty === 'HARD') return 40;
+      return 30;
     }
     // 数独：需要更多思考时间
     if (levelId === 2) {
