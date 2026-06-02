@@ -216,9 +216,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-[100svh] bg-slate-800 flex items-center justify-center p-2 sm:p-4 select-none text-black" style={{backgroundImage:'radial-gradient(#334155 1px, transparent 1px)', backgroundSize:'24px 24px'}}>
+    <div className="h-[100svh] bg-slate-800 flex items-center justify-center p-0 sm:p-4 select-none text-black" style={{backgroundImage:'radial-gradient(#334155 1px, transparent 1px)', backgroundSize:'24px 24px'}}>
 
-      <div className="w-full max-w-md bg-[#faf8f5] border-[6px] border-slate-800 shadow-[12px_12px_0px_#1e293b] rounded-none relative overflow-hidden flex flex-col h-[calc(100svh-1rem)] sm:h-[calc(100svh-2rem)] justify-between font-sans transition-all duration-300">
+      <div className="w-full max-w-md bg-[#faf8f5] border-0 sm:border-[6px] border-slate-800 shadow-none sm:shadow-[12px_12px_0px_#1e293b] rounded-none relative overflow-hidden flex flex-col h-[100svh] sm:h-[calc(100svh-2rem)] justify-between font-sans transition-all duration-300">
 
         {/* ── CRISP OS Header ── */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 text-white px-4 py-1.5 flex justify-between items-center text-[10px] tracking-widest font-mono select-none uppercase border-b-2 border-slate-600 shrink-0">

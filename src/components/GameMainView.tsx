@@ -1662,7 +1662,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       {/* ----------------------------------------------------
           TOP NAVIGATION HEADER
           ---------------------------------------------------- */}
-      <div className="p-3 border-b-2 border-black bg-white z-10" style={{backgroundImage:'radial-gradient(#f1f1f1 1px, transparent 1px)', backgroundSize:'10px 10px'}}>
+      <div className="p-3 border-b-2 border-black bg-white z-10 shrink-0" style={{backgroundImage:'radial-gradient(#f1f1f1 1px, transparent 1px)', backgroundSize:'10px 10px'}}>
 
         {/* Stage & Pause */}
         <div className="flex justify-between items-center mb-2">
@@ -1731,7 +1731,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       {/* ----------------------------------------------------
           MIDDLE: MAIN ACTIVE PUZZLE PLAYGROUND
           ---------------------------------------------------- */}
-      <div className="relative flex-1 flex flex-col justify-center items-center bg-white p-4 overflow-hidden min-h-[300px]" style={{backgroundImage:'radial-gradient(#e5e5e5 1px, transparent 1px)', backgroundSize:'16px 16px'}}>
+      <div className="relative flex-1 flex flex-col justify-center items-center bg-white p-4 overflow-hidden min-h-0" style={{backgroundImage:'radial-gradient(#e5e5e5 1px, transparent 1px)', backgroundSize:'16px 16px'}}>
         
         {/* Dynamic Flash Visual Screen on Click */}
         {visualFlash === 'CORRECT' && (
@@ -1811,7 +1811,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
                       onClick={() => handleSchulteClick(num)}
                       whileHover={{ scale: isClicked ? 1 : 1.05 }}
                       whileTap={{ scale: isClicked ? 1 : 0.92 }}
-                      className={`aspect-square flex items-center justify-center font-mono font-bold text-base md:text-lg transition-all duration-150 rounded-none border-2 border-black
+                      className={`aspect-square flex items-center justify-center font-mono font-bold text-base transition-all duration-150 rounded-none border-2 border-black
                         ${isClicked ? 'bg-neutral-300 text-neutral-500 border-neutral-400 line-through cursor-not-allowed' : 'bg-white text-black active:bg-black active:text-white cursor-pointer hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)]'}
                         ${blurClass} ${isSevere && !isClicked ? 'border-red-600 shadow-[1px_1px_0px_#dc2626]' : ''}
                         ${showHint && hintTarget === num && !isClicked ? 'ring-4 ring-yellow-400 ring-offset-2 bg-yellow-100 border-yellow-500 animate-bounce' : ''}`}
@@ -1834,7 +1834,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           const isSevere = stress > 70;
           const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
           const blurClass = isSevere ? 'blur-[2px] scale-95' : isMedium ? 'blur-[0.5px]' : '';
-          const cellTextClass = sudokuSize >= 9 ? 'text-sm md:text-base' : sudokuSize >= 7 ? 'text-base md:text-lg' : 'text-xl md:text-2xl';
+          const cellTextClass = sudokuSize >= 9 ? 'text-sm' : sudokuSize >= 7 ? 'text-base' : 'text-xl';
           const dialTextClass = sudokuSize >= 9 ? 'text-base' : 'text-lg';
 
           return (
@@ -1992,7 +1992,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
                       whileHover={{ scale: isLocked ? 1 : 1.05 }}
                       whileTap={{ scale: isLocked ? 1 : 0.92 }}
                       style={{ filter: isCorrectRotation ? 'drop-shadow(0 0 10px rgba(56,189,248,0.75))' : undefined }}
-                      className={`relative aspect-square flex items-center justify-center border-2 rounded-none font-mono font-black text-xl md:text-2xl transition-all text-black active:bg-black active:text-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)] ${bgClass} ${borderClass} ${isCorrectRotation ? 'outline outline-2 outline-sky-400 outline-offset-2' : ''} ${showHint && hintTarget === idx ? 'ring-4 ring-yellow-400 ring-offset-2 animate-bounce' : ''} ${isLocked ? 'cursor-not-allowed opacity-95' : 'cursor-pointer'}`}
+                      className={`relative aspect-square flex items-center justify-center border-2 rounded-none font-mono font-black text-xl transition-all text-black active:bg-black active:text-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)] ${bgClass} ${borderClass} ${isCorrectRotation ? 'outline outline-2 outline-sky-400 outline-offset-2' : ''} ${showHint && hintTarget === idx ? 'ring-4 ring-yellow-400 ring-offset-2 animate-bounce' : ''} ${isLocked ? 'cursor-not-allowed opacity-95' : 'cursor-pointer'}`}
                       animate={{ rotate: rotation * 90 }}
                       transition={{ duration: 0.12, ease: 'easeOut' }}
                     >
@@ -2119,7 +2119,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
                       onClick={() => handleMemoryCardClick(idx)}
                       whileHover={{ scale: card.faceUp || card.matched ? 1 : 1.05 }}
                       whileTap={{ scale: card.faceUp || card.matched ? 1 : 0.92 }}
-                      className={`aspect-square flex items-center justify-center border-2 border-black rounded-none font-mono font-bold cursor-pointer text-lg md:text-xl transition-all duration-150
+                      className={`aspect-square flex items-center justify-center border-2 border-black rounded-none font-mono font-bold cursor-pointer text-lg transition-all duration-150
                         ${card.matched
                           ? 'bg-emerald-100 border-emerald-400 text-emerald-700'
                           : card.faceUp

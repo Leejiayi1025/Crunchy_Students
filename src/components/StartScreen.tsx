@@ -164,8 +164,8 @@ export function StartScreen({ onStart }: StartScreenProps) {
         <div className="absolute inset-x-0 top-0 bottom-0 bg-red-100/50 -rotate-2 -z-10 scale-105 border-y-2 border-dashed border-black"></div>
         <h1 className="font-display font-black tracking-tight text-black flex flex-col gap-1 transform rotate-1">
           <span className="text-[10px] inline-block font-mono bg-black text-yellow-400 px-2.5 py-0.5 mx-auto max-w-max mb-1 uppercase tracking-wider font-extrabold shadow-[2px_2px_0px_rgba(0,0,0,1)]">极限心理防线自救</span>
-          <span className="text-5xl tracking-tighter uppercase leading-none">脆皮大学生</span>
-          <span className="text-red-600 font-display text-5xl block font-black mt-1 tracking-tight">《逆风指引》</span>
+          <span className="text-4xl sm:text-5xl tracking-tighter uppercase leading-none">脆皮大学生</span>
+          <span className="text-red-600 font-display text-4xl sm:text-5xl block font-black mt-1 tracking-tight">《逆风指引》</span>
         </h1>
       </div>
 

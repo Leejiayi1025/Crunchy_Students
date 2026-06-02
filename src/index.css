@@ -59,6 +59,9 @@ body {
   color: #000;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .text-xs { font-size: calc(0.75rem + 2px) !important; }
@@ -93,3 +96,14 @@ body {
 .blur-2px { filter: blur(2px); }
 .blur-1px { filter: blur(1px); }
 .scale-95 { transform: scale(0.95); }
+
+/* 小屏手机取消字号膨胀，保持原始大小 */
+@media (max-width: 380px) {
+  .text-xs { font-size: 0.75rem !important; }
+  .text-sm { font-size: 0.875rem !important; }
+  .text-base { font-size: 1rem !important; }
+  .text-lg { font-size: 1.125rem !important; }
+  .text-xl { font-size: 1.25rem !important; }
+  .text-2xl { font-size: 1.5rem !important; }
+  .text-3xl { font-size: 1.875rem !important; }
+}

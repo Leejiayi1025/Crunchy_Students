@@ -54,7 +54,7 @@ export function LevelIntroScreen({ level, talent, onEnterGame, onBack }: LevelIn
       </div>
 
       {/* Content */}
-      <div className="flex-1 py-3 space-y-3 overflow-y-auto max-h-[460px] my-1 pr-1">
+      <div className="flex-1 min-h-0 py-3 space-y-3 overflow-y-auto my-1 pr-1">
         <div className="border-[3px] border-black p-3 bg-red-50 shadow-[5px_5px_0px_rgba(0,0,0,1)] rounded-none">
           <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-1 mb-2">
             <div className="text-[10px] font-mono font-black tracking-widest uppercase text-red-700">核心规则</div>
