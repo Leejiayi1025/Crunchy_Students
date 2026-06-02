@@ -484,7 +484,9 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     clearReverseTimer();
     reverseAwaitingRef.current = false;
-    onLose(getFinalStats(), reason);
+    const stats = getFinalStats();
+    stats.score = 0; // 失败直接0分
+    onLose(stats, reason);
   };
 
   useEffect(() => {
