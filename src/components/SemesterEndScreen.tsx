@@ -7,6 +7,7 @@ import { useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { GameStats, Talent, Difficulty } from '../types';
 import { LEVELS, DIFFICULTY_TEXT, SCENES } from '../data';
+import { getScoreGrade, PASSING_SCORE } from '../utils';
 
 interface SemesterEndScreenProps {
   semesterStats: GameStats[];
@@ -14,16 +15,6 @@ interface SemesterEndScreenProps {
   difficulty: Difficulty;
   onPlayBonus: () => void;
   onHome: () => void;
-}
-
-/** 根据总星数计算学期评价 */
-function getSemesterGrade(totalStars: number, maxStars: number): { grade: string; label: string; color: string } {
-  const ratio = totalStars / maxStars;
-  if (ratio >= 0.9) return { grade: 'S', label: '传奇学霸', color: 'text-yellow-500' };
-  if (ratio >= 0.75) return { grade: 'A', label: '优等生', color: 'text-emerald-600' };
-  if (ratio >= 0.5) return { grade: 'B', label: '及格万岁', color: 'text-sky-600' };
-  if (ratio >= 0.25) return { grade: 'C', label: '险过飘过', color: 'text-orange-500' };
-  return { grade: 'D', label: '补考预定', color: 'text-red-600' };
 }
 
 export function SemesterEndScreen({ semesterStats, talent, difficulty, onPlayBonus, onHome }: SemesterEndScreenProps) {
@@ -36,7 +27,13 @@ export function SemesterEndScreen({ semesterStats, talent, difficulty, onPlayBon
   const totalTime = semesterStats.reduce((sum, s) => sum + s.timeUsed, 0);
   const totalErrors = semesterStats.reduce((sum, s) => sum + s.errorsMade, 0);
   const maxStress = Math.max(...semesterStats.map((s) => s.maxStress));
-  const grade = getSemesterGrade(totalStars, maxStars);
+
+  // 平均分计算
+  const avgScore = semesterStats.length > 0
+    ? Math.round(semesterStats.reduce((sum, s) => sum + s.score, 0) / semesterStats.length)
+    : 0;
+  const grade = getScoreGrade(avgScore);
+  const isPassed = avgScore >= PASSING_SCORE;
 
   const exportTranscript = async () => {
     setIsExporting(true);
@@ -177,9 +174,9 @@ export function SemesterEndScreen({ semesterStats, talent, difficulty, onPlayBon
       >
         <div className="hatching absolute inset-0 pointer-events-none"></div>
         <div className="relative z-10 text-center">
-          <div className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1">学期总评</div>
-          <div className={`text-6xl font-display font-black ${grade.color}`}>{grade.grade}</div>
-          <div className="text-sm font-bold mt-1">{grade.label}</div>
+          <div className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1">学期平均分</div>
+          <div className={`text-5xl font-display font-black ${grade.color}`}>{avgScore}</div>
+          <div className={`text-sm font-bold mt-0.5 ${grade.color}`}>{grade.grade} · {grade.label}</div>
           <div className="flex items-center justify-center gap-1 mt-2">
             {'⭐'.repeat(totalStars).split('').map((_, i) => (
               <motion.span
@@ -195,7 +192,16 @@ export function SemesterEndScreen({ semesterStats, talent, difficulty, onPlayBon
               <span key={`empty-${i}`} className="opacity-20">⭐</span>
             ))}
           </div>
-          <p className="text-[10px] font-mono text-neutral-500 mt-1">{totalStars} / {maxStars} 星</p>
+          {!isPassed && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="text-[11px] font-mono font-bold text-red-600 mt-2 bg-red-50 border-2 border-red-300 px-2 py-1"
+            >
+              ⚠️ 平均分未达 {PASSING_SCORE}，无法进入寒假篇
+            </motion.p>
+          )}
         </div>
       </motion.div>
 
@@ -230,6 +236,7 @@ export function SemesterEndScreen({ semesterStats, talent, difficulty, onPlayBon
         <div className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 border-b border-black pb-1">各关成绩</div>
         {semesterStats.map((stat, i) => {
           const level = LEVELS.find((l) => l.id === stat.levelId);
+          const statGrade = getScoreGrade(stat.score);
           return (
             <motion.div
               key={stat.levelId}
@@ -247,8 +254,9 @@ export function SemesterEndScreen({ semesterStats, talent, difficulty, onPlayBon
                   {stat.timeUsed}s · {stat.errorsMade}错 · 峰压{stat.maxStress}%
                 </div>
               </div>
-              <div className="text-sm shrink-0 ml-2">
-                {'⭐'.repeat(stat.stars)}{'☆'.repeat(3 - stat.stars)}
+              <div className="flex items-center gap-2 shrink-0 ml-2">
+                <span className="text-xs">{'⭐'.repeat(stat.stars)}{'☆'.repeat(3 - stat.stars)}</span>
+                <span className={`font-display font-black text-lg ${statGrade.color}`}>{stat.score}</span>
               </div>
             </motion.div>
           );
@@ -282,10 +290,15 @@ export function SemesterEndScreen({ semesterStats, talent, difficulty, onPlayBon
             🏠 回到首页
           </button>
           <button
-            onClick={onPlayBonus}
-            className="manga-btn bg-black text-white hover:bg-neutral-800 py-2.5 font-display font-black text-xs tracking-wider cursor-pointer flex items-center justify-center gap-1.5"
+            onClick={isPassed ? onPlayBonus : undefined}
+            disabled={!isPassed}
+            className={`manga-btn py-2.5 font-display font-black text-xs tracking-wider flex items-center justify-center gap-1.5 ${
+              isPassed
+                ? 'bg-black text-white hover:bg-neutral-800 cursor-pointer'
+                : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+            }`}
           >
-            🎮 寒假特别挑战
+            {isPassed ? '🎮 寒假特别挑战' : '🔒 需60分解锁'}
           </button>
         </div>
       </motion.div>

@@ -59,4 +59,5 @@ export interface GameStats {
   triggeredSurprisesCount: number;
   surpriseSuccesses: number;
   stars: number;
+  score: number; // 0-100 百分制
 }

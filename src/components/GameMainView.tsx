@@ -14,6 +14,7 @@ import {
 import {
   AlertOctagon, AlertTriangle, ShieldCheck, Play, Pause, RefreshCw, Undo2, Coffee, Eye, Radio, BellRing, Skull, ArrowLeft, Lightbulb, RotateCcw
 } from 'lucide-react';
+import { calculateScore } from '../utils';
 
 interface GameMainViewProps {
   level: Level;
@@ -488,7 +489,8 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
   }, [handleFailedConclusion]);
 
   const getFinalStats = (): GameStats => {
-    return {
+    const stars = calculateStars(errorsMade, maxStressReached, remainingTime);
+    const stats: GameStats = {
       levelId: level.id,
       talent: talent,
       difficulty,
@@ -501,8 +503,11 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       timeline: timelineRef.current,
       triggeredSurprisesCount: triggeredSurprisesCount,
       surpriseSuccesses: surpriseSuccesses,
-      stars: calculateStars(errorsMade, maxStressReached, remainingTime),
+      stars,
+      score: 0,
     };
+    stats.score = calculateScore(stats);
+    return stats;
   };
 
   const calculateStars = (errs: number, maxStr: number, timeLeft: number): number => {
