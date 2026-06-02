@@ -5,6 +5,7 @@
 
 import { Level } from '../types';
 import { motion } from 'motion/react';
+import { SCENES } from '../data';
 
 interface LevelSelectScreenProps {
   levels: Level[];
@@ -82,47 +83,85 @@ export function LevelSelectScreen({
 
       {/* Level List */}
       <div className="flex-1 flex flex-col justify-center py-3 space-y-3 overflow-y-auto custom-scrollbar pr-1">
-        <span className="text-[9px] font-mono tracking-widest text-neutral-500 block uppercase text-center font-black">—— ☠ 选择抗压考场 ☠ ——</span>
         {levels.map((level, idx) => {
           const selected = idx === selectedLevelIdx;
           const completed = isCompleted(level.id);
           const isNextPlayable = idx === nextPlayableLevelIdx;
           const isLocked = !completed && !isNextPlayable;
           const selectable = completed || isNextPlayable;
+
+          // 检查是否需要插入场景标题
+          const scene = SCENES.find((s) => s.levelIds[0] === level.id);
+          const isBonusLevel = !SCENES.some((s) => s.levelIds.includes(level.id));
+
           return (
-            <motion.div
-              key={level.id}
-              whileHover={selectable ? { y: -2 } : undefined}
-              whileTap={selectable ? { y: 2 } : undefined}
-              onClick={selectable ? () => onSelectLevel(idx) : undefined}
-              className={`w-full p-4 text-left relative transition-all rounded-none flex items-center justify-between select-none ${
-                isLocked
-                  ? 'border-3 border-neutral-300 bg-neutral-100 text-zinc-400 cursor-not-allowed'
-                  : selected
-                    ? 'manga-panel-active bg-white cursor-pointer'
-                    : 'manga-panel bg-white hover:bg-neutral-50 cursor-pointer'
-              }`}
-              style={isLocked ? {borderWidth:'3px', borderStyle:'solid', borderColor:'#d4d4d4'} : undefined}
-            >
-              {isLocked && <div className="absolute inset-0 hatching pointer-events-none opacity-50"></div>}
-              <div className="flex-1 min-w-0 pr-2 relative z-10">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className={`text-[9px] font-mono px-2 py-0.5 border-2 border-black leading-none font-bold ${
-                    isLocked ? 'bg-neutral-200 text-zinc-400' : 'bg-black text-yellow-400'
-                  }`}>STAGE 0{level.id}</span>
-                  {completed && <span className="text-[9px] bg-emerald-500 text-white font-mono px-1 py-0.5 border-2 border-black font-black uppercase">已通关</span>}
-                  {isNextPlayable && !completed && <span className="text-[9px] bg-red-600 text-white font-mono px-1 py-0.5 border-2 border-black font-black uppercase animate-pulse">当前关</span>}
+            <div key={level.id}>
+              {/* 场景分组标题 */}
+              {scene && (
+                <div className="mb-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-[2px] flex-1 bg-black"></div>
+                    <span className="text-[10px] font-mono font-black uppercase tracking-widest px-2">场景{scene.id === 1 ? '一' : scene.id === 2 ? '二' : scene.id}：{scene.name}</span>
+                    <div className="h-[2px] flex-1 bg-black"></div>
+                  </div>
+                  <p className="text-[9px] font-mono text-neutral-500 text-center">{scene.subtitle}</p>
                 </div>
-                <h3 className={`font-display font-black text-sm leading-tight ${isLocked ? 'text-zinc-400' : 'text-black'}`}>{level.title}</h3>
-                <p className={`text-[10px] font-mono mt-0.5 ${isLocked ? 'text-zinc-400' : 'text-neutral-500'}`}>时限 {level.baseTime}s</p>
-              </div>
-              <div className="shrink-0 flex items-center justify-center ml-2 relative z-10">
-                {isLocked
-                  ? <div className="p-2 border-2 border-neutral-300 bg-neutral-200">🔒</div>
-                  : <div className="bg-black text-white p-2.5 border-2 border-black shadow-[2px_2px_0px_0px_#22c55e]">→</div>
-                }
-              </div>
-            </motion.div>
+              )}
+
+              {/* 特别关卡标题 */}
+              {isBonusLevel && idx > 0 && !SCENES.some((s) => s.levelIds.includes(levels[idx - 1]?.id)) && (
+                <div className="mb-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-[2px] flex-1 bg-black"></div>
+                    <span className="text-[10px] font-mono font-black uppercase tracking-widest px-2">🎁 特别挑战</span>
+                    <div className="h-[2px] flex-1 bg-black"></div>
+                  </div>
+                </div>
+              )}
+              {isBonusLevel && idx > 0 && SCENES.some((s) => s.levelIds.includes(levels[idx - 1]?.id)) && (
+                <div className="mb-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-[2px] flex-1 bg-black"></div>
+                    <span className="text-[10px] font-mono font-black uppercase tracking-widest px-2">🎁 特别挑战</span>
+                    <div className="h-[2px] flex-1 bg-black"></div>
+                  </div>
+                </div>
+              )}
+
+              {/* 关卡卡片 */}
+              <motion.div
+                whileHover={selectable ? { y: -2 } : undefined}
+                whileTap={selectable ? { y: 2 } : undefined}
+                onClick={selectable ? () => onSelectLevel(idx) : undefined}
+                className={`w-full p-4 text-left relative transition-all rounded-none flex items-center justify-between select-none ${
+                  isLocked
+                    ? 'border-3 border-neutral-300 bg-neutral-100 text-zinc-400 cursor-not-allowed'
+                    : selected
+                      ? 'manga-panel-active bg-white cursor-pointer'
+                      : 'manga-panel bg-white hover:bg-neutral-50 cursor-pointer'
+                }`}
+                style={isLocked ? {borderWidth:'3px', borderStyle:'solid', borderColor:'#d4d4d4'} : undefined}
+              >
+                {isLocked && <div className="absolute inset-0 hatching pointer-events-none opacity-50"></div>}
+                <div className="flex-1 min-w-0 pr-2 relative z-10">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className={`text-[9px] font-mono px-2 py-0.5 border-2 border-black leading-none font-bold ${
+                      isLocked ? 'bg-neutral-200 text-zinc-400' : 'bg-black text-yellow-400'
+                    }`}>STAGE 0{level.id}</span>
+                    {completed && <span className="text-[9px] bg-emerald-500 text-white font-mono px-1 py-0.5 border-2 border-black font-black uppercase">已通关</span>}
+                    {isNextPlayable && !completed && <span className="text-[9px] bg-red-600 text-white font-mono px-1 py-0.5 border-2 border-black font-black uppercase animate-pulse">当前关</span>}
+                  </div>
+                  <h3 className={`font-display font-black text-sm leading-tight ${isLocked ? 'text-zinc-400' : 'text-black'}`}>{level.title}</h3>
+                  <p className={`text-[10px] font-mono mt-0.5 ${isLocked ? 'text-zinc-400' : 'text-neutral-500'}`}>时限 {level.baseTime}s</p>
+                </div>
+                <div className="shrink-0 flex items-center justify-center ml-2 relative z-10">
+                  {isLocked
+                    ? <div className="p-2 border-2 border-neutral-300 bg-neutral-200">🔒</div>
+                    : <div className="bg-black text-white p-2.5 border-2 border-black shadow-[2px_2px_0px_0px_#22c55e]">→</div>
+                  }
+                </div>
+              </motion.div>
+            </div>
           );
         })}
       </div>
