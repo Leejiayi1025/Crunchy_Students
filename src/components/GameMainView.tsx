@@ -1651,87 +1651,87 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
   };
 
   return (
-    <div className="relative flex flex-col justify-between h-full bg-stone-50 text-black overflow-hidden select-none">
+    <div className="relative flex flex-col justify-between h-full bg-[#f9f9f9] text-black overflow-hidden select-none">
 
       {/* Visual background shake indicator overlay */}
       {stress > 70 && (
-        <div className="absolute inset-0 border-[6px] border-red-900/40 pointer-events-none z-40 animate-pulse" />
+        <div className="absolute inset-0 border-4 border-red-900/40 pointer-events-none z-40 animate-pulse" />
       )}
 
       {/* ----------------------------------------------------
-          TOP NAVIGATION HEADER
+          INFO PANEL - Manga Style
           ---------------------------------------------------- */}
-      <div className="p-3 border-b-4 border-black bg-white z-10 shrink-0" style={{backgroundImage:'radial-gradient(#f1f1f1 1px, transparent 1px)', backgroundSize:'10px 10px'}}>
+      <div className="shrink-0 p-2">
+        <div className="manga-panel bg-white p-2.5">
+          {/* Stage & Pause */}
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <div className="flex gap-1.5 mb-0.5">
+                <span className="bg-black text-white text-[10px] px-1.5 py-0.5 font-mono font-black">关卡 0{level.id}</span>
+                <span className="border border-black text-[10px] px-1.5 py-0.5 font-bold">{DIFFICULTY_TEXT[difficulty]}</span>
+              </div>
+              <h3 className="text-sm font-bold leading-tight">{level.title}</h3>
+            </div>
+            <button
+              id="btn-play-pause-toggle"
+              onClick={() => setIsPaused(!isPaused)}
+              className="manga-panel bg-white px-2 py-1 flex items-center gap-1 manga-active cursor-pointer"
+            >
+              <span className="text-[16px]">{isPaused ? '▶' : '⏸'}</span>
+              <span className="text-[11px] font-bold">{isPaused ? '继续' : '暂停'}</span>
+            </button>
+          </div>
 
-        {/* Stage & Pause */}
-        <div className="flex justify-between items-center mb-2">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[8.5px] bg-black text-yellow-400 font-mono font-black tracking-widest px-2 py-0.5 select-none rounded-none border-2 border-black uppercase">
-                STAGE 0{level.id}
-              </span>
-              <span className="text-[8.5px] bg-sky-50 text-sky-700 font-mono font-black tracking-widest px-2 py-0.5 select-none rounded-none border-2 border-black uppercase">
-                {DIFFICULTY_TEXT[difficulty]}
+          {/* Stress Bar */}
+          <div className="mb-2">
+            <div className="flex justify-between items-end mb-0.5">
+              <div className="flex items-center gap-1">
+                <span className="text-red-600 text-[14px]">💀</span>
+                <span className="text-[12px] font-bold">压力: <span className={`${stress >= 75 ? 'text-red-600' : ''}`}>{stress}%</span></span>
+              </div>
+              <span className="text-[10px] text-neutral-500 flex items-center gap-0.5">
+                {stress <= 20 && '🧘 情绪稳定'}{stress > 20 && stress <= 40 && '😳 轻度紧张'}{stress > 40 && stress <= 70 && '🥵 高度紧张'}{stress > 70 && '☠️ 濒临崩溃'}
               </span>
             </div>
-            <h3 className="font-display font-black text-[13px] text-black mt-1 tracking-tight">{level.title}</h3>
+            <div className="w-full h-3 border-2 border-black bg-neutral-100 relative overflow-hidden">
+              <div
+                className={`absolute inset-y-0 left-0 transition-all duration-300 ease-out ${stress >= 71 ? 'bg-red-600 animate-pulse' : stress >= 41 ? 'bg-orange-500' : 'bg-black'}`}
+                style={{width:`${Math.min((stress / stressMaxCap) * 100, 100)}%`}}
+              />
+            </div>
           </div>
-          <button
-            id="btn-play-pause-toggle"
-            onClick={() => setIsPaused(!isPaused)}
-            className="bg-neutral-50 hover:bg-neutral-100 border-2 border-black text-black px-2.5 py-1 select-none text-[10px] font-mono rounded-none font-black shadow-[2px_2px_0px_0px_#000] cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
-          >
-            {isPaused ? '▶ 唤睡战意' : '⏸ 暂作修整'}
-          </button>
+
+          {/* Status Grid */}
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className="border border-black p-1 flex flex-col items-center">
+              <span className="text-[9px] text-neutral-500">时间</span>
+              <span className={`text-sm font-mono font-bold leading-none mt-0.5 ${remainingTime <= 15 ? 'text-red-600 animate-pulse' : ''}`}>{formattedTime()}</span>
+            </div>
+            <div className="border border-black p-1 flex flex-col items-center" style={{backgroundImage:'radial-gradient(circle, rgba(0,0,0,0.08) 0.5px, transparent 0.5px)', backgroundSize:'3px 3px'}}>
+              <span className="text-[9px] text-neutral-500">连击</span>
+              <span className="text-sm font-mono font-bold leading-none mt-0.5">{consecutiveCorrect}</span>
+            </div>
+            <div className="border border-black p-1 flex flex-col items-center">
+              <span className="text-[9px] text-neutral-500">天资</span>
+              <span className="text-[10px] font-bold text-center leading-none mt-0.5 truncate max-w-[60px]">{talent ? talent.name : '裸跑'}</span>
+            </div>
+          </div>
+
+          {/* System Quote */}
+          {floatingQuote && (
+            <div className="mt-2 border-t border-black pt-1">
+              <p className="text-[10px] italic text-neutral-500 leading-tight">
+                <span className="font-bold not-italic">系统:</span> "{floatingQuote}"
+              </p>
+            </div>
+          )}
         </div>
-
-        {/* Stress Gauge */}
-        {/* Stress Gauge */}
-        <div className="px-2 py-1.5 bg-white">
-          <div className="flex justify-between items-center text-[10px] font-mono mb-1">
-            <span className="font-semibold text-black">💀 脑压: <strong className={`font-black ${stress >= 75 ? 'text-red-600' : ''}`}>{stress}%</strong></span>
-            <span className="text-zinc-500 text-[9px] font-bold">
-              {stress <= 20 && '🧘 平缓'}{stress > 20 && stress <= 40 && '😳 轻浮'}{stress > 40 && stress <= 70 && '🥵 沸热'}{stress > 70 && '☠️ 濒崩'}
-            </span>
-          </div>
-          <div className="w-full bg-neutral-200 h-3 border-2 border-black relative overflow-hidden">
-            <div className={`h-full transition-all duration-300 ease-out ${stress >= 71 ? 'bg-red-600 animate-pulse' : stress >= 41 ? 'bg-orange-500' : 'bg-black'}`} style={{width:`${Math.min((stress / stressMaxCap) * 100, 100)}%`}} />
-          </div>
-        </div>
-
-        {/* Tickers */}
-        <div className="py-1.5 px-2 border-t border-black text-[10px] font-mono flex justify-between bg-zinc-50/50 select-none font-bold">
-          <div className="flex items-center gap-1">
-            <span>⏰</span>
-            <span className={`font-mono font-black tracking-tight ${remainingTime <= 15 ? 'text-red-600 animate-pulse bg-red-50 px-1 border border-red-300' : 'text-neutral-900'}`}>{formattedTime()}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>✅</span>
-            <span className="text-zinc-500">COMBO:</span>
-            <span className="bg-emerald-50 text-emerald-700 border border-emerald-300 px-1 py-0.5 text-[9px] font-black rounded-sm">{consecutiveCorrect}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-red-600 font-bold">[体质]</span>
-            <span className="truncate max-w-[80px]">{talent ? talent.name : '裸跑'}</span>
-          </div>
-        </div>
-
-        {/* Live quote */}
-        {floatingQuote && (
-          <div className="mt-1 bg-stone-100 border border-stone-300 p-1 flex items-start gap-1">
-            <span className="text-[9px] font-mono text-neutral-500 bg-stone-200 px-1 border border-stone-300 select-none shrink-0 font-bold">SYS:</span>
-            <p className="text-[9px] text-neutral-600 font-mono leading-tight truncate flex-1 min-w-0">
-              {floatingQuote}
-            </p>
-          </div>
-        )}
-
       </div>
 
       {/* ----------------------------------------------------
           MIDDLE: MAIN ACTIVE PUZZLE PLAYGROUND
           ---------------------------------------------------- */}
-      <div className="relative flex-1 flex flex-col justify-center items-center bg-white p-4 overflow-hidden min-h-0" style={{backgroundImage:'radial-gradient(#e5e5e5 1px, transparent 1px)', backgroundSize:'16px 16px'}}>
+      <div className="relative flex-1 flex flex-col justify-center items-center bg-white p-3 overflow-hidden min-h-0">
         
         {/* Dynamic Flash Visual Screen on Click */}
         {visualFlash === 'CORRECT' && (
@@ -1744,10 +1744,18 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
         {/* Level instructions overlay */}
         <div className="text-center mb-3 select-none z-10">
           {level.id === 1 && (
-            <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
-              <span>当前寻找目标:</span>
-              <span className="bg-black text-white px-2.5 py-0.5 rounded font-black text-sm animate-pulse">{schulteNext}</span>
-              <span>进度: {schulteNext - 1} / 25</span>
+            <div className="flex items-center gap-4 mb-3 select-none">
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] uppercase tracking-tight mb-1">当前目标</span>
+                <div className="w-12 h-12 bg-black text-white flex items-center justify-center text-2xl font-bold border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)]">
+                  {schulteNext}
+                </div>
+              </div>
+              <div className="h-[1px] w-8 bg-black"></div>
+              <div className="text-center">
+                <span className="block text-[10px] text-neutral-500 uppercase">当前进度</span>
+                <span className="text-lg font-mono font-bold">{String(schulteNext - 1).padStart(2, '0')} / 25</span>
+              </div>
             </div>
           )}
           {level.id === 2 && (
@@ -1793,12 +1801,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
 
           return (
             <div className="w-full max-w-sm mx-auto select-none mt-2">
-              <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
-                <span>当前寻找目标:</span>
-                <span className="bg-black text-white px-2.5 py-0.5 rounded font-black text-sm animate-pulse">{schulteNext}</span>
-                <span>进度: {schulteNext - 1} / 25</span>
-              </div>
-              <div className={`grid grid-cols-5 gap-1.5 p-2 bg-neutral-100 border-4 border-black shadow-[4px_4px_0px_#000000] rounded-none transition-all duration-300 ${shakeClass}`}>
+              <div className={`manga-panel bg-white p-2 grid grid-cols-5 gap-1.5 w-full transition-all duration-300 ${shakeClass}`}>
                 {schulteNumbers.map((num, i) => {
                   const isClicked = num < schulteNext;
                   const isCorrupted = isSevere && !isClicked && (num % 3 === 0 || num % 7 === 1);
@@ -1811,7 +1814,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
                       onClick={() => handleSchulteClick(num)}
                       whileHover={{ scale: isClicked ? 1 : 1.05 }}
                       whileTap={{ scale: isClicked ? 1 : 0.92 }}
-                      className={`aspect-square flex items-center justify-center font-mono font-bold text-base transition-all duration-150 rounded-none border-2 border-black
+                      className={`aspect-square flex items-center justify-center font-bold text-lg transition-all duration-150 border-2 border-black manga-active
                         ${isClicked ? 'bg-neutral-300 text-neutral-500 border-neutral-400 line-through cursor-not-allowed' : 'bg-white text-black active:bg-black active:text-white cursor-pointer hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)]'}
                         ${blurClass} ${isSevere && !isClicked ? 'border-red-600 shadow-[1px_1px_0px_#dc2626]' : ''}
                         ${showHint && hintTarget === num && !isClicked ? 'ring-4 ring-yellow-400 ring-offset-2 bg-yellow-100 border-yellow-500 animate-bounce' : ''}`}
@@ -2386,7 +2389,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       {/* ----------------------------------------------------
           BOTTOM CONTROLLER FOOTER: ACTIONS BAR
           ---------------------------------------------------- */}
-      <div className="p-2.5 px-3 border-t-4 border-black bg-neutral-200 flex justify-between items-center shrink-0 gap-2">
+      <div className="p-2 px-3 border-t-4 border-black bg-neutral-200 flex justify-center items-end shrink-0 gap-2">
 
         {/* Hint button */}
         <motion.button
@@ -2394,38 +2397,35 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           disabled={isPaused || isSlacking || showSurprise || showHint}
           onClick={handleUseHint}
           whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={`h-[40px] px-2 font-mono font-black text-[10px] tracking-tight border-2 border-black flex items-center gap-1 transition-all duration-150 shadow-[2px_2px_0px_rgba(0,0,0,1)] ${
+          whileTap={{ scale: 0.95 }}
+          className={`manga-panel p-1.5 flex flex-col items-center justify-center w-12 h-12 manga-active transition-all ${
             isPaused || isSlacking || showSurprise || showHint
-              ? 'bg-stone-100 text-stone-400 border-stone-300 shadow-none cursor-not-allowed'
-              : 'bg-blue-100 hover:bg-blue-200 text-blue-800 cursor-pointer active:translate-y-0.5 active:shadow-none'
+              ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
+              : 'bg-white cursor-pointer'
           }`}
         >
-          <Lightbulb size={14} className="shrink-0" />
-          <div className="text-left leading-none select-none">
-            <span className="block font-black text-[9px]">提示</span>
-            <span className="text-[7px] font-normal leading-none block font-mono text-zinc-500">-时间</span>
-          </div>
+          <Lightbulb size={16} className="shrink-0" />
+          <span className="text-[9px] font-bold leading-none mt-0.5">提示</span>
         </motion.button>
 
-        {/* Slack off button */}
+        {/* Slack off button - Main CTA */}
         <motion.button
           id="btn-slack-off-trigger"
           disabled={isPaused || isSlacking || showSurprise}
           onClick={triggerSlackOff}
           whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={`h-[40px] px-2 font-mono font-black text-[10px] tracking-tight border-2 border-black flex items-center gap-1 transition-all duration-150 shadow-[2px_2px_0px_rgba(0,0,0,1)] ${
+          whileTap={{ scale: 0.95 }}
+          className={`manga-panel px-4 py-2 flex flex-col items-center justify-center min-w-[100px] h-14 manga-active ${
             isPaused || isSlacking || showSurprise
-              ? 'bg-stone-100 text-stone-400 border-stone-300 shadow-none cursor-not-allowed'
-              : 'bg-yellow-400 hover:bg-yellow-300 text-black cursor-pointer active:translate-y-0.5 active:shadow-none'
+              ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
+              : 'bg-black text-white cursor-pointer'
           }`}
         >
-          <span className="shrink-0 text-amber-900">☕</span>
-          <div className="text-left leading-none select-none">
-            <span className="block font-black text-[9px]">【摸鱼自救】</span>
-            <span className="text-[7px] font-normal leading-none block font-mono text-zinc-600">降压 / -15s</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[18px]">☕</span>
+            <span className="text-xs font-bold tracking-tight">摸鱼一下</span>
           </div>
+          <span className="text-[9px] opacity-80">压力 -15%</span>
         </motion.button>
 
         {/* Restart button */}
@@ -2434,18 +2434,15 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           disabled={isPaused || isSlacking || showSurprise}
           onClick={onRestart}
           whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={`h-[40px] px-2 font-mono font-black text-[10px] tracking-tight border-2 border-black flex items-center gap-1 transition-all duration-150 shadow-[2px_2px_0px_rgba(0,0,0,1)] ${
+          whileTap={{ scale: 0.95 }}
+          className={`manga-panel p-1.5 flex flex-col items-center justify-center w-12 h-12 manga-active transition-all ${
             isPaused || isSlacking || showSurprise
-              ? 'bg-stone-100 text-stone-400 border-stone-300 shadow-none cursor-not-allowed'
-              : 'bg-stone-100 hover:bg-stone-200 text-stone-700 cursor-pointer active:translate-y-0.5 active:shadow-none'
+              ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
+              : 'bg-white cursor-pointer'
           }`}
         >
-          <RotateCcw size={14} className="shrink-0" />
-          <div className="text-left leading-none select-none">
-            <span className="block font-black text-[9px]">重来</span>
-            <span className="text-[7px] font-normal leading-none block font-mono text-zinc-500">本关</span>
-          </div>
+          <RotateCcw size={16} className="shrink-0" />
+          <span className="text-[9px] font-bold leading-none mt-0.5">重来</span>
         </motion.button>
 
         <motion.button
@@ -2453,18 +2450,15 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           disabled={isSlacking || showSurprise}
           onClick={onSkip}
           whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={`h-[40px] px-2 font-mono font-black text-[10px] tracking-tight border-2 border-black flex items-center gap-1 transition-all duration-150 shadow-[2px_2px_0px_rgba(0,0,0,1)] ${
+          whileTap={{ scale: 0.95 }}
+          className={`manga-panel p-1.5 flex flex-col items-center justify-center w-12 h-12 manga-active transition-all ${
             isSlacking || showSurprise
-              ? 'bg-stone-100 text-stone-400 border-stone-300 shadow-none cursor-not-allowed'
-              : 'bg-amber-100 hover:bg-amber-200 text-amber-900 cursor-pointer active:translate-y-0.5 active:shadow-none'
+              ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
+              : 'bg-white cursor-pointer'
           }`}
         >
-          <Undo2 size={14} className="shrink-0" />
-          <div className="text-left leading-none select-none">
-            <span className="block font-black text-[9px]">跳过</span>
-            <span className="text-[7px] font-normal leading-none block font-mono text-zinc-600">本关</span>
-          </div>
+          <Undo2 size={16} className="shrink-0" />
+          <span className="text-[9px] font-bold leading-none mt-0.5">跳过</span>
         </motion.button>
 
       </div>
