@@ -1716,7 +1716,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       {/* ----------------------------------------------------
           MIDDLE: MAIN ACTIVE PUZZLE PLAYGROUND
           ---------------------------------------------------- */}
-      <div className="relative flex-1 flex flex-col justify-center items-center bg-white p-2 overflow-hidden min-h-0">
+      <div className="relative flex-1 flex flex-col items-center bg-white p-2 pt-1 overflow-hidden min-h-0">
 
         {/* Dynamic Flash Visual Screen on Click */}
         {visualFlash === 'CORRECT' && (
@@ -1729,7 +1729,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
         {/* Level instructions overlay */}
         <div className="text-center mb-2 select-none z-10">
           {level.id === 1 && (
-            <div className="flex items-center gap-3 mb-2 select-none">
+            <div className="flex items-center gap-3 mb-1 select-none">
               <div className="flex flex-col items-center">
                 <span className="text-[9px] uppercase tracking-tight mb-0.5">目标</span>
                 <div className="w-10 h-10 bg-black text-white flex items-center justify-center text-xl font-bold border-2 border-black">
@@ -1785,8 +1785,8 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           const blurClass = isSevere ? 'blur-[2.5px] select-none scale-95' : isMedium ? 'blur-[1px] select-none' : '';
 
           return (
-            <div className="w-full max-w-sm mx-auto select-none mt-2">
-              <div className={`manga-panel bg-white p-2 grid grid-cols-5 gap-1.5 w-full transition-all duration-300 ${shakeClass}`}>
+            <div className="w-full max-w-[320px] mx-auto select-none">
+              <div className={`border-2 border-black bg-white p-1.5 grid grid-cols-5 gap-1 w-full transition-all duration-300 ${shakeClass}`}>
                 {schulteNumbers.map((num, i) => {
                   const isClicked = num < schulteNext;
                   const isCorrupted = isSevere && !isClicked && (num % 3 === 0 || num % 7 === 1);
@@ -1826,7 +1826,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           const dialTextClass = sudokuSize >= 9 ? 'text-base' : 'text-lg';
 
           return (
-            <div className="w-full max-w-sm mx-auto select-none mt-2">
+            <div className="w-full max-w-[320px] mx-auto select-none">
               <div className="flex justify-between items-center px-1 py-1 mb-3 text-xs font-mono border-b border-black text-black">
                 <span>选定格子: {selectedSudokuIdx !== null ? `第${sudokuCells[selectedSudokuIdx].row + 1}行 第${sudokuCells[selectedSudokuIdx].col + 1}列` : '未选取'}</span>
                 <span className="text-neutral-500">{sudokuSize}×{sudokuSize}</span>
@@ -1900,7 +1900,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
 
           return (
-            <div className="w-full max-w-xs mx-auto select-none mt-2">
+            <div className="w-full max-w-[280px] mx-auto select-none">
               <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
                 <span>🔎 找不同</span>
                 <span className="text-neutral-500">
@@ -1942,7 +1942,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
 
           return (
-            <div className="w-full max-w-xs mx-auto select-none mt-2">
+            <div className="w-full max-w-[280px] mx-auto select-none">
               <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
                 <span>🔧 点击管道旋转</span>
                 <span className="text-neutral-500">连通左右两侧</span>
@@ -2002,7 +2002,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
 
           return (
-            <div className="w-full max-w-xs mx-auto select-none mt-2">
+            <div className="w-full max-w-[280px] mx-auto select-none">
               <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
                 <span>🧠 背下颜色顺序</span>
                 <span className="text-neutral-500">第 {colorRound + 1} / {COLOR_SEQUENCE_TARGET_ROUNDS} 轮</span>
@@ -2091,7 +2091,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           const shakeClass = isSevere ? 'animate-shake-extreme' : isMedium ? 'animate-shake-constant' : isSlight ? 'animate-shake-gentle' : '';
 
           return (
-            <div className="w-full max-w-xs mx-auto select-none mt-2">
+            <div className="w-full max-w-[280px] mx-auto select-none">
               <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
                 <span>🃏 翻牌配对</span>
                 <span className="text-neutral-500">已配对 {memoryCards.filter(c => c.matched).length / 2} / {difficultyCfg.memoryPairsCount}</span>
@@ -2148,7 +2148,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
             'aspect-square flex items-center justify-center border-2 border-black rounded-none font-mono font-black cursor-pointer text-xl transition-all duration-150 bg-white text-black active:bg-black active:text-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)]';
 
           return (
-            <div className="w-full max-w-xs mx-auto select-none mt-2">
+            <div className="w-full max-w-[280px] mx-auto select-none">
               <div className="flex justify-between items-center px-2 py-1 mb-3 text-xs font-mono border-b border-black text-black">
                 <span>🧭 反向指令</span>
                 <span className="text-neutral-500">{reverseScore} / {REVERSE_TARGET}</span>

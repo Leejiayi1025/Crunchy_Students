@@ -5,42 +5,47 @@
 
 import { GameStats, Difficulty } from './types';
 
-/** 难度系数 — 难度越高，同等表现得分越高 */
-const DIFFICULTY_MULTIPLIER: Record<Difficulty, number> = {
-  EASY: 0.85,
-  MEDIUM: 1.0,
-  HARD: 1.15,
-  HELL: 1.35,
+/** 难度分数上限 — 通关即60分，上限随难度提升 */
+const SCORE_CEILING: Record<Difficulty, number> = {
+  EASY: 80,
+  MEDIUM: 90,
+  HARD: 95,
+  HELL: 100,
 };
 
 /**
- * 根据玩家操作计算百分制分数
+ * 百分制打分
  *
- * 基础分 = 时间分(45) + 准确分(25) + 抗压分(20) + 效率分(10)
- * 最终分 = min(100, round(基础分 × 难度系数))
+ * 通关即得60分基础分，剩余20分根据表现分配：
+ * - 时间分(8): 剩余时间占比
+ * - 准确分(6): 错误越少越高
+ * - 抗压分(4): 压力越低越高
+ * - 效率分(2): 提示/摸鱼越少越高
+ *
+ * 最终分 = min(难度上限, 60 + 基础加分)
  */
 export function calculateScore(stats: GameStats): number {
   const totalTime = stats.timeUsed + stats.timeRemainingBeforePenalty;
 
-  // 时间分（45分）：剩余时间越多分越高
+  // 时间分（8分）：剩余时间越多越好
   const timeScore = totalTime > 0
-    ? (stats.timeRemainingBeforePenalty / totalTime) * 45
+    ? (stats.timeRemainingBeforePenalty / totalTime) * 8
     : 0;
 
-  // 准确分（25分）：每错一次扣5分
-  const accuracyScore = Math.max(0, 25 - stats.errorsMade * 5);
+  // 准确分（6分）：每错一次扣1.5分
+  const accuracyScore = Math.max(0, 6 - stats.errorsMade * 1.5);
 
-  // 抗压分（20分）：压力越高扣越多
-  const stressScore = Math.max(0, 20 - stats.maxStress * 0.2);
+  // 抗压分（4分）：压力越高扣越多
+  const stressScore = Math.max(0, 4 - stats.maxStress * 0.04);
 
-  // 效率分（10分）：提示-3，摸鱼-2
-  const efficiencyScore = Math.max(0, 10 - stats.hintsUsed * 3 - stats.slackedOffCount * 2);
+  // 效率分（2分）：提示-0.5，摸鱼-0.5
+  const efficiencyScore = Math.max(0, 2 - stats.hintsUsed * 0.5 - stats.slackedOffCount * 0.5);
 
-  const baseScore = timeScore + accuracyScore + stressScore + efficiencyScore;
-  const multiplier = DIFFICULTY_MULTIPLIER[stats.difficulty] ?? 1.0;
-  const finalScore = baseScore * multiplier;
+  const bonusScore = timeScore + accuracyScore + stressScore + efficiencyScore;
+  const rawScore = 60 + bonusScore;
+  const ceiling = SCORE_CEILING[stats.difficulty] ?? 90;
 
-  return Math.round(Math.min(100, Math.max(0, finalScore)));
+  return Math.round(Math.min(ceiling, Math.max(60, rawScore)));
 }
 
 /** 分数等级 */
