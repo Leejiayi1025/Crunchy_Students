@@ -54,6 +54,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
   const [consecutiveCorrect, setConsecutiveCorrect] = useState<number>(0);
   const [hintsUsed, setHintsUsed] = useState<number>(0);
   const [showHint, setShowHint] = useState<boolean>(false);
+  const [showSkipConfirm, setShowSkipConfirm] = useState<boolean>(false);
   const [hintTarget, setHintTarget] = useState<number | null>(null);
 
   // Time tracker
@@ -2432,7 +2433,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
         <motion.button
           id="btn-skip-level"
           disabled={isSlacking || showSurprise}
-          onClick={onSkip}
+          onClick={() => setShowSkipConfirm(true)}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.95 }}
           className={`border-2 border-black p-1 flex flex-col items-center justify-center w-10 h-10 manga-active transition-all ${
@@ -2446,6 +2447,47 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
         </motion.button>
 
       </div>
+
+      {/* Skip Confirmation Dialog */}
+      <AnimatePresence>
+        {showSkipConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+            onClick={() => setShowSkipConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="manga-panel-active bg-white p-4 max-w-[280px] w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-3">
+                <div className="text-2xl mb-2">⚠️</div>
+                <h3 className="font-display font-black text-sm mb-1">确认放弃本关吗？</h3>
+                <p className="text-[11px] font-mono text-neutral-500">跳过将直接挂科，本关得分计为 0</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setShowSkipConfirm(false)}
+                  className="border-2 border-black py-2 font-display font-black text-xs tracking-wider bg-white hover:bg-neutral-50 cursor-pointer manga-active"
+                >
+                  我再试试
+                </button>
+                <button
+                  onClick={() => { setShowSkipConfirm(false); onSkip(); }}
+                  className="border-2 border-black py-2 font-display font-black text-xs tracking-wider bg-red-600 text-white hover:bg-red-500 cursor-pointer manga-active"
+                >
+                  确认放弃
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

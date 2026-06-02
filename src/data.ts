@@ -32,11 +32,12 @@ export const getLevelDifficultyConfig = (
 } => {
   const baseTime = LEVELS.find((l) => l.id === levelId)?.baseTime ?? 60;
 
+  // 数独尺寸：简单4×4，中等4×4，困难5×5，地狱6×6
   const { sudokuSize, sudokuBoxSize } = (() => {
     if (difficulty === 'EASY') return { sudokuSize: 4, sudokuBoxSize: 2 };
-    if (difficulty === 'MEDIUM') return { sudokuSize: 5, sudokuBoxSize: 0 };
-    if (difficulty === 'HARD') return { sudokuSize: 7, sudokuBoxSize: 0 };
-    return { sudokuSize: 9, sudokuBoxSize: 3 };
+    if (difficulty === 'MEDIUM') return { sudokuSize: 4, sudokuBoxSize: 2 };
+    if (difficulty === 'HARD') return { sudokuSize: 5, sudokuBoxSize: 0 };
+    return { sudokuSize: 6, sudokuBoxSize: 0 };
   })();
 
   // 舒尔特方格大小：简单/中等=25(5×5)，困难/地狱=30(5×6)
@@ -53,11 +54,12 @@ export const getLevelDifficultyConfig = (
       if (difficulty === 'HARD') return 30;
       return 20;
     }
+    // 数独：需要更多思考时间
     if (levelId === 2) {
-      if (difficulty === 'EASY') return 30;
-      if (difficulty === 'MEDIUM') return 30;
-      if (difficulty === 'HARD') return 50;
-      return 80;
+      if (difficulty === 'EASY') return 120;
+      if (difficulty === 'MEDIUM') return 90;
+      if (difficulty === 'HARD') return 75;
+      return 60;
     }
     if (difficulty === 'EASY') return Math.round(baseTime * 1.25);
     if (difficulty === 'MEDIUM') return baseTime;
@@ -65,13 +67,13 @@ export const getLevelDifficultyConfig = (
     return Math.round(baseTime * 0.7);
   })();
 
+  // 数独提示数：简单多给提示，地狱少给提示
   const sudokuClues = (() => {
     const cells = sudokuSize * sudokuSize;
-    if (difficulty === 'EASY') return Math.min(cells, Math.max(10, Math.round(cells * 0.65)));
-    if (difficulty === 'MEDIUM') return Math.min(cells, Math.max(14, Math.round(cells * 0.55)));
-    if (difficulty === 'HARD') return Math.min(cells, Math.max(22, Math.round(cells * 0.45)));
-    if (sudokuSize === 9) return Math.min(cells, Math.max(36, Math.round(cells * 0.45)));
-    return Math.min(cells, Math.max(30, Math.round(cells * 0.38)));
+    if (difficulty === 'EASY') return Math.min(cells, Math.max(10, Math.round(cells * 0.6)));
+    if (difficulty === 'MEDIUM') return Math.min(cells, Math.max(8, Math.round(cells * 0.5)));
+    if (difficulty === 'HARD') return Math.min(cells, Math.max(8, Math.round(cells * 0.4)));
+    return Math.min(cells, Math.max(6, Math.round(cells * 0.35)));
   })();
 
   const oddOneOutTargetRounds = (() => {
@@ -287,7 +289,7 @@ export const LEVELS: Level[] = [
     name: '逻辑数独挑战',
     title: '第二关：随堂微积分测试！',
     scenario: '导员发下测试纸，算入平时成绩30%！逻辑已经完全打结…',
-    instructions: '填入1-4，使每行、每列、每个2×2宫数字不重复。',
+    instructions: '填入数字，使每行、每列、每个宫内数字不重复。',
     rules: ['点击空格 → 再点下方数字填入', '每行/每列/每宫 数字不可重复', '填错 → 扣时间 + 逆风值上涨'],
     baseTime: 80,
     failureTragedy: '交了大白卷！平时成绩扣光，成绩不合格。'
