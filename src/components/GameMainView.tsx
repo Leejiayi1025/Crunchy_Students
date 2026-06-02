@@ -514,13 +514,11 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
   };
 
   const calculateStars = (errs: number, maxStr: number, timeLeft: number): number => {
-    // 3 stars: no errors and max stress below 70% and time remaining > 30%
-    const perfectErrors = errs <= 1;
-    const stablePressure = maxStr < 75;
-    const swiftSolve = timeLeft > (baseTime * 0.25);
-
-    if (perfectErrors && stablePressure && swiftSolve) return 3;
-    if (errs <= 4 && maxStr < 95) return 2;
+    // 3星: 0错误 + 压力<50% + 剩余时间>50%
+    if (errs === 0 && maxStr < 50 && timeLeft > baseTime * 0.5) return 3;
+    // 2星: ≤2错误 + 压力<75% + 剩余时间>25%
+    if (errs <= 2 && maxStr < 75 && timeLeft > baseTime * 0.25) return 2;
+    // 1星: 通关即得
     return 1;
   };
 
