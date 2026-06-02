@@ -179,14 +179,40 @@ export default function App() {
     setCompletedLevelIds(nextCompleted);
     setLastLevelId(null);
     writeProgress({ completedLevelIds: nextCompleted, lastLevelId: null });
-    setActiveStats(null);
 
-    const nextIdx = currentLevelIdx + 1;
-    if (nextIdx < LEVELS.length) {
-      setCurrentLevelIdx(nextIdx);
-      setGameState('LEVEL_INTRO');
+    // 检测是否跳过的是场景最后一关
+    if (isLastLevelOfScene(currentLevel.id)) {
+      const scene = SCENES.find((s) => s.levelIds.includes(currentLevel.id));
+      if (scene) {
+        const sceneLevels = getSceneLevels(scene);
+        const dummyStats: GameStats = {
+          levelId: currentLevel.id,
+          talent: selectedTalent,
+          difficulty,
+          timeRemainingBeforePenalty: 0,
+          timeUsed: 0,
+          errorsMade: 0,
+          hintsUsed: 0,
+          maxStress: 0,
+          slackedOffCount: 0,
+          timeline: [],
+          triggeredSurprisesCount: 0,
+          surpriseSuccesses: 0,
+          stars: 0,
+        };
+        setSemesterStats(sceneLevels.map((lvl) => ({ ...dummyStats, levelId: lvl.id })));
+      }
+      setActiveStats(null);
+      setGameState('SEMESTER_COMPLETE');
     } else {
-      setGameState('LEVEL_SELECT');
+      setActiveStats(null);
+      const nextIdx = currentLevelIdx + 1;
+      if (nextIdx < LEVELS.length) {
+        setCurrentLevelIdx(nextIdx);
+        setGameState('LEVEL_INTRO');
+      } else {
+        setGameState('LEVEL_SELECT');
+      }
     }
   };
 
