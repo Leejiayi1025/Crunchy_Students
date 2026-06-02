@@ -11,7 +11,8 @@ export type GameState =
   | 'PLAYING'
   | 'PAUSED'
   | 'CLEAR'
-  | 'FAILED';
+  | 'FAILED'
+  | 'SEMESTER_COMPLETE';
 
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'HELL';
 

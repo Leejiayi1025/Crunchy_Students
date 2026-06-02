@@ -335,6 +335,40 @@ export const LEVELS: Level[] = [
   }
 ];
 
+// ── 场景定义 ──
+export interface Scene {
+  id: number;
+  name: string;
+  subtitle: string;
+  levelIds: number[];
+}
+
+export const SCENES: Scene[] = [
+  {
+    id: 1,
+    name: '第一学期',
+    subtitle: '从开学到期末，你能撑过这学期吗？',
+    levelIds: [1, 2, 3, 4, 5, 6],
+  },
+];
+
+/** 获取某个关卡所属的场景 */
+export function getSceneForLevel(levelId: number): Scene | undefined {
+  return SCENES.find((s) => s.levelIds.includes(levelId));
+}
+
+/** 判断某个关卡是否为所属场景的最后一关 */
+export function isLastLevelOfScene(levelId: number): boolean {
+  const scene = getSceneForLevel(levelId);
+  if (!scene) return false;
+  return scene.levelIds[scene.levelIds.length - 1] === levelId;
+}
+
+/** 获取场景内所有关卡 */
+export function getSceneLevels(scene: Scene): Level[] {
+  return scene.levelIds.map((id) => LEVELS.find((l) => l.id === id)!).filter(Boolean);
+}
+
 // 4x4 Sudoku configurations
 export interface SudokuCell {
   row: number;

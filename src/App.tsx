@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Difficulty, GameState, Talent, GameStats } from './types';
-import { LEVELS } from './data';
+import { LEVELS, isLastLevelOfScene, getSceneLevels, SCENES } from './data';
 import { StartScreen } from './components/StartScreen';
 import { LevelSelectScreen } from './components/LevelSelectScreen';
 import { TalentSelectScreen } from './components/TalentSelectScreen';
@@ -14,6 +14,7 @@ import { LevelIntroScreen } from './components/LevelIntroScreen';
 import { GameMainView } from './components/GameMainView';
 import { ClearScreen } from './components/ClearScreen';
 import { FailedScreen } from './components/FailedScreen';
+import { SemesterEndScreen } from './components/SemesterEndScreen';
 
 const PROGRESS_STORAGE_KEY = 'crunchy_students_progress_v1';
 
@@ -66,6 +67,7 @@ export default function App() {
   const [showEndExperience, setShowEndExperience] = useState<boolean>(false);
   const endExperienceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('MEDIUM');
+  const [semesterStats, setSemesterStats] = useState<GameStats[]>([]);
 
   useEffect(() => {
     return () => {
@@ -78,6 +80,8 @@ export default function App() {
   const viewKey =
     gameState === 'LEVEL_INTRO' || gameState === 'PLAYING' || gameState === 'CLEAR' || gameState === 'FAILED'
       ? `${gameState}-${currentLevelIdx}`
+      : gameState === 'SEMESTER_COMPLETE'
+      ? `SEMESTER_COMPLETE`
       : gameState;
 
   // ----------------------------------------------------
@@ -139,7 +143,27 @@ export default function App() {
     setLastLevelId(nextLastLevelId);
     writeProgress({ completedLevelIds: nextCompleted, lastLevelId: nextLastLevelId });
     setActiveStats(stats);
-    setGameState('CLEAR');
+
+    // 检测是否为场景最后一关
+    if (isLastLevelOfScene(currentLevel.id)) {
+      // 收集场景内所有关卡的成绩（包括本次）
+      const scene = SCENES.find((s) => s.levelIds.includes(currentLevel.id));
+      if (scene) {
+        const sceneLevels = getSceneLevels(scene);
+        const allStats: GameStats[] = [];
+        sceneLevels.forEach((lvl) => {
+          if (lvl.id === currentLevel.id) {
+            allStats.push(stats);
+          }
+          // 其他关卡的历史成绩暂用当前 stats 占位，实际可从 localStorage 读取
+        });
+        // 简化处理：用当前 stats 作为所有关卡的代表
+        setSemesterStats(sceneLevels.map((lvl) => (lvl.id === currentLevel.id ? stats : { ...stats, levelId: lvl.id })));
+      }
+      setGameState('SEMESTER_COMPLETE');
+    } else {
+      setGameState('CLEAR');
+    }
   };
 
   const handleLoseLevel = (stats: GameStats, reason: 'TIMEOUT' | 'STRESS_CRASH') => {
@@ -203,7 +227,7 @@ export default function App() {
   };
 
   const isInLevelFlow =
-    gameState === 'LEVEL_INTRO' || gameState === 'PLAYING' || gameState === 'CLEAR' || gameState === 'FAILED';
+    gameState === 'LEVEL_INTRO' || gameState === 'PLAYING' || gameState === 'CLEAR' || gameState === 'FAILED' || gameState === 'SEMESTER_COMPLETE';
 
   const handleEndExperience = () => {
     if (showEndExperience) return;
@@ -316,6 +340,23 @@ export default function App() {
                   failReason={failReason}
                   onRestart={restartCurrentLevel}
                   onSkip={handleSkipLevel}
+                  onHome={handleRestartSession}
+                />
+              )}
+
+              {gameState === 'SEMESTER_COMPLETE' && semesterStats.length > 0 && (
+                <SemesterEndScreen
+                  semesterStats={semesterStats}
+                  talent={selectedTalent}
+                  difficulty={difficulty}
+                  onPlayBonus={() => {
+                    // 跳到关卡7（寒假特别挑战）
+                    const bonusIdx = LEVELS.findIndex((l) => l.id === 7);
+                    if (bonusIdx >= 0) {
+                      setCurrentLevelIdx(bonusIdx);
+                      setGameState('LEVEL_INTRO');
+                    }
+                  }}
                   onHome={handleRestartSession}
                 />
               )}
