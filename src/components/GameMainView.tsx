@@ -1667,67 +1667,45 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       {/* ----------------------------------------------------
           INFO PANEL - Manga Style
           ---------------------------------------------------- */}
-      <div className="shrink-0 p-2">
-        <div className="manga-panel bg-white p-2.5">
-          {/* Stage & Pause */}
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <div className="flex gap-1.5 mb-0.5">
-                <span className="bg-black text-white text-[10px] px-1.5 py-0.5 font-mono font-black">关卡 0{level.id}</span>
-                <span className="border border-black text-[10px] px-1.5 py-0.5 font-bold">{DIFFICULTY_TEXT[difficulty]}</span>
+      <div className="shrink-0 px-2 pt-1.5 pb-1">
+        <div className="border-2 border-black bg-white px-2 py-1.5">
+          {/* Row 1: Stage + Stress bar + Pause */}
+          <div className="flex items-center gap-2 mb-1">
+            <span className="bg-black text-white text-[9px] px-1 py-0.5 font-mono font-black shrink-0">0{level.id}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1 mb-0.5">
+                <span className="text-[11px] font-bold truncate">{level.title}</span>
+                <span className="text-[9px] text-neutral-400 shrink-0">{DIFFICULTY_TEXT[difficulty]}</span>
               </div>
-              <h3 className="text-sm font-bold leading-tight">{level.title}</h3>
+              <div className="w-full h-2 border border-black bg-neutral-100 relative overflow-hidden">
+                <div
+                  className={`absolute inset-y-0 left-0 transition-all duration-300 ease-out ${stress >= 71 ? 'bg-red-600 animate-pulse' : stress >= 41 ? 'bg-orange-500' : 'bg-black'}`}
+                  style={{width:`${Math.min((stress / stressMaxCap) * 100, 100)}%`}}
+                />
+              </div>
             </div>
             <button
               id="btn-play-pause-toggle"
               onClick={() => setIsPaused(!isPaused)}
-              className="manga-panel bg-white px-2 py-1 flex items-center gap-1 manga-active cursor-pointer"
+              className="border-2 border-black bg-white px-1.5 py-0.5 flex items-center gap-0.5 manga-active cursor-pointer shrink-0"
             >
-              <span className="text-[16px]">{isPaused ? '▶' : '⏸'}</span>
-              <span className="text-[11px] font-bold">{isPaused ? '继续' : '暂停'}</span>
+              <span className="text-[14px]">{isPaused ? '▶' : '⏸'}</span>
             </button>
           </div>
 
-          {/* Stress Bar */}
-          <div className="mb-2">
-            <div className="flex justify-between items-end mb-0.5">
-              <div className="flex items-center gap-1">
-                <span className="text-red-600 text-[14px]">💀</span>
-                <span className="text-[12px] font-bold">压力: <span className={`${stress >= 75 ? 'text-red-600' : ''}`}>{stress}%</span></span>
-              </div>
-              <span className="text-[10px] text-neutral-500 flex items-center gap-0.5">
-                {stress <= 20 && '🧘 情绪稳定'}{stress > 20 && stress <= 40 && '😳 轻度紧张'}{stress > 40 && stress <= 70 && '🥵 高度紧张'}{stress > 70 && '☠️ 濒临崩溃'}
-              </span>
-            </div>
-            <div className="w-full h-3 border-2 border-black bg-neutral-100 relative overflow-hidden">
-              <div
-                className={`absolute inset-y-0 left-0 transition-all duration-300 ease-out ${stress >= 71 ? 'bg-red-600 animate-pulse' : stress >= 41 ? 'bg-orange-500' : 'bg-black'}`}
-                style={{width:`${Math.min((stress / stressMaxCap) * 100, 100)}%`}}
-              />
-            </div>
-          </div>
-
-          {/* Status Grid */}
-          <div className="grid grid-cols-3 gap-1.5">
-            <div className="border border-black p-1 flex flex-col items-center">
-              <span className="text-[9px] text-neutral-500">时间</span>
-              <span className={`text-sm font-mono font-bold leading-none mt-0.5 ${remainingTime <= 15 ? 'text-red-600 animate-pulse' : ''}`}>{formattedTime()}</span>
-            </div>
-            <div className="border border-black p-1 flex flex-col items-center" style={{backgroundImage:'radial-gradient(circle, rgba(0,0,0,0.08) 0.5px, transparent 0.5px)', backgroundSize:'3px 3px'}}>
-              <span className="text-[9px] text-neutral-500">连击</span>
-              <span className="text-sm font-mono font-bold leading-none mt-0.5">{consecutiveCorrect}</span>
-            </div>
-            <div className="border border-black p-1 flex flex-col items-center">
-              <span className="text-[9px] text-neutral-500">天资</span>
-              <span className="text-[10px] font-bold text-center leading-none mt-0.5 truncate max-w-[60px]">{talent ? talent.name : '裸跑'}</span>
-            </div>
+          {/* Row 2: Stats inline */}
+          <div className="flex items-center justify-between text-[10px] font-mono">
+            <span className={`font-bold ${remainingTime <= 15 ? 'text-red-600 animate-pulse' : ''}`}>⏰ {formattedTime()}</span>
+            <span>💀 {stress}%</span>
+            <span>🔥 {consecutiveCorrect}连击</span>
+            <span className="truncate max-w-[50px]">✨ {talent ? talent.name : '裸跑'}</span>
           </div>
 
           {/* System Quote */}
           {floatingQuote && (
-            <div className="mt-2 border-t border-black pt-1">
-              <p className="text-[10px] italic text-neutral-500 leading-tight">
-                <span className="font-bold not-italic">系统:</span> "{floatingQuote}"
+            <div className="mt-1 border-t border-neutral-200 pt-0.5">
+              <p className="text-[9px] italic text-neutral-400 leading-tight truncate">
+                💬 {floatingQuote}
               </p>
             </div>
           )}
@@ -1737,8 +1715,8 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       {/* ----------------------------------------------------
           MIDDLE: MAIN ACTIVE PUZZLE PLAYGROUND
           ---------------------------------------------------- */}
-      <div className="relative flex-1 flex flex-col justify-center items-center bg-white p-3 overflow-hidden min-h-0">
-        
+      <div className="relative flex-1 flex flex-col justify-center items-center bg-white p-2 overflow-hidden min-h-0">
+
         {/* Dynamic Flash Visual Screen on Click */}
         {visualFlash === 'CORRECT' && (
           <div className="absolute inset-0 bg-white/10 z-10 pointer-events-none transition-all duration-75" />
@@ -1748,19 +1726,19 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
         )}
 
         {/* Level instructions overlay */}
-        <div className="text-center mb-3 select-none z-10">
+        <div className="text-center mb-2 select-none z-10">
           {level.id === 1 && (
-            <div className="flex items-center gap-4 mb-3 select-none">
+            <div className="flex items-center gap-3 mb-2 select-none">
               <div className="flex flex-col items-center">
-                <span className="text-[10px] uppercase tracking-tight mb-1">当前目标</span>
-                <div className="w-12 h-12 bg-black text-white flex items-center justify-center text-2xl font-bold border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)]">
+                <span className="text-[9px] uppercase tracking-tight mb-0.5">目标</span>
+                <div className="w-10 h-10 bg-black text-white flex items-center justify-center text-xl font-bold border-2 border-black">
                   {schulteNext}
                 </div>
               </div>
-              <div className="h-[1px] w-8 bg-black"></div>
+              <div className="h-[1px] w-6 bg-black"></div>
               <div className="text-center">
-                <span className="block text-[10px] text-neutral-500 uppercase">当前进度</span>
-                <span className="text-lg font-mono font-bold">{String(schulteNext - 1).padStart(2, '0')} / {difficultyCfg.schulteGridSize}</span>
+                <span className="block text-[9px] text-neutral-500 uppercase">进度</span>
+                <span className="text-base font-mono font-bold">{String(schulteNext - 1).padStart(2, '0')}/{difficultyCfg.schulteGridSize}</span>
               </div>
             </div>
           )}
@@ -2395,7 +2373,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       {/* ----------------------------------------------------
           BOTTOM CONTROLLER FOOTER: ACTIONS BAR
           ---------------------------------------------------- */}
-      <div className="p-2 px-3 border-t-4 border-black bg-neutral-200 flex justify-center items-end shrink-0 gap-2">
+      <div className="p-1.5 px-2 border-t-2 border-black bg-neutral-200 flex justify-center items-end shrink-0 gap-1.5">
 
         {/* Hint button */}
         <motion.button
@@ -2404,14 +2382,14 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           onClick={handleUseHint}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.95 }}
-          className={`manga-panel p-1.5 flex flex-col items-center justify-center w-12 h-12 manga-active transition-all ${
+          className={`border-2 border-black p-1 flex flex-col items-center justify-center w-10 h-10 manga-active transition-all ${
             isPaused || isSlacking || showSurprise || showHint
               ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
               : 'bg-white cursor-pointer'
           }`}
         >
-          <Lightbulb size={16} className="shrink-0" />
-          <span className="text-[9px] font-bold leading-none mt-0.5">提示</span>
+          <Lightbulb size={14} className="shrink-0" />
+          <span className="text-[8px] font-bold leading-none">提示</span>
         </motion.button>
 
         {/* Slack off button - Main CTA */}
@@ -2421,17 +2399,17 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           onClick={triggerSlackOff}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.95 }}
-          className={`manga-panel px-4 py-2 flex flex-col items-center justify-center min-w-[100px] h-14 manga-active ${
+          className={`border-2 border-black px-3 py-1.5 flex flex-col items-center justify-center min-w-[80px] h-10 manga-active ${
             isPaused || isSlacking || showSurprise
               ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
               : 'bg-black text-white cursor-pointer'
           }`}
         >
           <div className="flex items-center gap-1">
-            <span className="text-[18px]">☕</span>
-            <span className="text-xs font-bold tracking-tight">摸鱼一下</span>
+            <span className="text-[14px]">☕</span>
+            <span className="text-[11px] font-bold tracking-tight">摸鱼</span>
           </div>
-          <span className="text-[9px] opacity-80">压力 -15%</span>
+          <span className="text-[8px] opacity-80">-15%</span>
         </motion.button>
 
         {/* Restart button */}
@@ -2441,14 +2419,14 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           onClick={onRestart}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.95 }}
-          className={`manga-panel p-1.5 flex flex-col items-center justify-center w-12 h-12 manga-active transition-all ${
+          className={`border-2 border-black p-1 flex flex-col items-center justify-center w-10 h-10 manga-active transition-all ${
             isPaused || isSlacking || showSurprise
               ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
               : 'bg-white cursor-pointer'
           }`}
         >
-          <RotateCcw size={16} className="shrink-0" />
-          <span className="text-[9px] font-bold leading-none mt-0.5">重来</span>
+          <RotateCcw size={14} className="shrink-0" />
+          <span className="text-[8px] font-bold leading-none">重来</span>
         </motion.button>
 
         <motion.button
@@ -2457,14 +2435,14 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           onClick={onSkip}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.95 }}
-          className={`manga-panel p-1.5 flex flex-col items-center justify-center w-12 h-12 manga-active transition-all ${
+          className={`border-2 border-black p-1 flex flex-col items-center justify-center w-10 h-10 manga-active transition-all ${
             isSlacking || showSurprise
               ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
               : 'bg-white cursor-pointer'
           }`}
         >
-          <Undo2 size={16} className="shrink-0" />
-          <span className="text-[9px] font-bold leading-none mt-0.5">跳过</span>
+          <Undo2 size={14} className="shrink-0" />
+          <span className="text-[8px] font-bold leading-none">跳过</span>
         </motion.button>
 
       </div>
