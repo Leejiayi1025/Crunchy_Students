@@ -1324,7 +1324,6 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
   const handlePipeClick = (idx: number) => {
     if (isPaused || isSlacking || showSurprise) return;
     if (pipeCells[idx].type === 'empty') return;
-    if (idx === pipeSourceIdx || idx === pipeSinkIdx) return;
 
     setPipeRotations((prev) => {
       const next = [...prev];
