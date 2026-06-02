@@ -193,7 +193,6 @@ body {
   border: 3px solid #000;
   box-shadow: 3px 3px 0px 0px #000;
   transition: transform 0.05s, box-shadow 0.05s;
-  background-color: #fff;
   position: relative;
   overflow: hidden;
 }
