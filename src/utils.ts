@@ -5,45 +5,44 @@
 
 import { GameStats, Difficulty } from './types';
 
-/** 难度分数上限 — 通关即60分，上限随难度提升 */
+/** 难度分数上限 */
 const SCORE_CEILING: Record<Difficulty, number> = {
-  EASY: 80,
-  MEDIUM: 90,
-  HARD: 95,
+  EASY: 85,
+  MEDIUM: 95,
+  HARD: 100,
   HELL: 100,
 };
 
 /**
  * 百分制打分
  *
- * 通关即得60分基础分，剩余20分根据表现分配：
- * - 时间分(8): 剩余时间占比
- * - 准确分(6): 错误越少越高
- * - 抗压分(4): 压力越低越高
- * - 效率分(2): 提示/摸鱼越少越高
+ * 基础分60 + 表现加分最高40 = 100
  *
- * 最终分 = min(难度上限, 60 + 基础加分)
+ * 时间分(15): 剩余时间越多越好
+ * 准确分(12): 错误越少越好
+ * 抗压分(8): 压力越低越好
+ * 效率分(5): 提示/摸鱼越少越好
  */
 export function calculateScore(stats: GameStats): number {
   const totalTime = stats.timeUsed + stats.timeRemainingBeforePenalty;
 
-  // 时间分（8分）：剩余时间越多越好
+  // 时间分（15分）
   const timeScore = totalTime > 0
-    ? (stats.timeRemainingBeforePenalty / totalTime) * 8
+    ? (stats.timeRemainingBeforePenalty / totalTime) * 15
     : 0;
 
-  // 准确分（6分）：每错一次扣1.5分
-  const accuracyScore = Math.max(0, 6 - stats.errorsMade * 1.5);
+  // 准确分（12分）：每错一次扣2分
+  const accuracyScore = Math.max(0, 12 - stats.errorsMade * 2);
 
-  // 抗压分（4分）：压力越高扣越多
-  const stressScore = Math.max(0, 4 - stats.maxStress * 0.04);
+  // 抗压分（8分）：压力越高扣越多
+  const stressScore = Math.max(0, 8 - stats.maxStress * 0.08);
 
-  // 效率分（2分）：提示-0.5，摸鱼-0.5
-  const efficiencyScore = Math.max(0, 2 - stats.hintsUsed * 0.5 - stats.slackedOffCount * 0.5);
+  // 效率分（5分）：提示-1，摸鱼-1
+  const efficiencyScore = Math.max(0, 5 - stats.hintsUsed * 1 - stats.slackedOffCount * 1);
 
   const bonusScore = timeScore + accuracyScore + stressScore + efficiencyScore;
   const rawScore = 60 + bonusScore;
-  const ceiling = SCORE_CEILING[stats.difficulty] ?? 90;
+  const ceiling = SCORE_CEILING[stats.difficulty] ?? 95;
 
   return Math.round(Math.min(ceiling, Math.max(60, rawScore)));
 }
