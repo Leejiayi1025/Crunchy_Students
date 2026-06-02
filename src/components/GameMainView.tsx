@@ -757,7 +757,9 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
   const triggerSlackOff = () => {
     if (isPaused || isSlacking || showSurprise) return;
 
+    setIsSlacking(true);
     setSlackedOffCount((prev) => prev + 1);
+    setSlackTimeLeft(5);
     setConsecutiveCorrect(0);
 
     // 扣除5秒时间
@@ -766,15 +768,24 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       return penalty < 0 ? 0 : penalty;
     });
 
-    // 立即减少20%压力
-    let relief = -20;
-    // 天赋加成
-    if (talent?.id === 'milk_tea_addict') relief = Math.round(relief * 1.5); // 奶茶续命 +50%
-    if (talent?.id === 'low_sugar') relief = Math.round(relief * 1.3); // 低血糖 +30%
-    adjustStressValue(relief);
+    // 5秒倒计时，每秒减压
+    let ticks = 5;
+    const perTick = -4; // 每秒-4%，5秒共-20%
+    const slackTimer = setInterval(() => {
+      ticks -= 1;
+      setSlackTimeLeft(ticks);
 
-    setFloatingQuote('☕ 摸鱼5秒，压力减轻了！');
-    playClick();
+      let relief = perTick;
+      if (talent?.id === 'milk_tea_addict') relief = Math.round(relief * 1.5);
+      if (talent?.id === 'low_sugar') relief = Math.round(relief * 1.3);
+      adjustStressValue(relief);
+
+      if (ticks <= 0) {
+        clearInterval(slackTimer);
+        setIsSlacking(false);
+        setFloatingQuote('☕ 摸鱼归来！压力减轻了，继续！');
+      }
+    }, 1000);
   };
 
   // ----------------------------------------------------
