@@ -1746,7 +1746,9 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
               </div>
 
               {/* Schulte Grid */}
-              <div className={`manga-panel bg-zinc-100 p-2 grid grid-cols-5 gap-1.5 w-full aspect-square max-w-[340px] transition-all duration-300 ${shakeClass}`}>
+              <div className={`manga-panel bg-zinc-100 p-2 grid grid-cols-5 gap-1.5 w-full max-w-[340px] transition-all duration-300 ${shakeClass}`}
+                style={{ aspectRatio: difficultyCfg.schulteGridSize <= 25 ? '1 / 1' : '5 / 6' }}
+              >
                 {schulteNumbers.map((num, i) => {
                   const isClicked = num < schulteNext;
                   const isCorrupted = isSevere && !isClicked && (num % 3 === 0 || num % 7 === 1);
