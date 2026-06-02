@@ -33,30 +33,30 @@ export function LevelSelectScreen({
   const hasLast = lastLevelId !== null;
 
   return (
-    <div className="flex-1 flex flex-col justify-between p-5 bg-stone-50 select-none">
+    <div className="flex-1 flex flex-col justify-between p-5 bg-[#f9f9f9] select-none">
 
       {/* Top Bar */}
-      <div className="pb-2 border-b-2 border-black">
-        <span className="text-[9px] tracking-widest font-mono text-neutral-500 block uppercase font-bold leading-none">[LEVEL SELECTION / 关卡选择]</span>
-        <h2 className="text-xl font-display font-black text-black mt-1 flex justify-between items-center">
-          <span>关卡进度</span>
+      <div className="pb-2 border-b-4 border-black">
+        <div className="flex justify-between items-end mb-1">
+          <span className="text-[9px] tracking-widest font-mono text-neutral-500 block uppercase font-bold leading-none">[LEVEL SELECTION / 关卡选择]</span>
           <div className="flex items-center gap-2">
             <button
               id="btn-change-talent"
               onClick={onChangeTalent}
-              className="text-[9px] bg-stone-100 text-stone-600 font-mono px-2 py-0.5 border border-stone-300 font-black rounded-sm cursor-pointer hover:bg-stone-200 transition-colors"
+              className="bg-white text-black font-mono px-2 py-1 border-2 border-black font-black cursor-pointer hover:bg-neutral-100 transition-colors text-[10px] shadow-[2px_2px_0px_0px_black] active:translate-y-0.5 active:shadow-none"
             >
               更换体质
             </button>
             <button
               id="btn-reset-progress"
               onClick={onResetProgress}
-              className="text-[9px] bg-stone-100 text-stone-600 font-mono px-2 py-0.5 border border-stone-300 font-black rounded-sm cursor-pointer hover:bg-stone-200 transition-colors"
+              className="bg-white text-black font-mono px-2 py-1 border-2 border-black font-black cursor-pointer hover:bg-neutral-100 transition-colors text-[10px] shadow-[2px_2px_0px_0px_black] active:translate-y-0.5 active:shadow-none"
             >
-              清除进度
+              清除
             </button>
           </div>
-        </h2>
+        </div>
+        <h2 className="text-xl font-display font-black text-black mt-1">关卡进度</h2>
       </div>
 
       {/* Continue Last */}
@@ -64,9 +64,9 @@ export function LevelSelectScreen({
         <motion.button
           id="btn-continue-last"
           whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.95 }}
           onClick={onContinueLast}
-          className="mt-3 w-full bg-white border-[3px] border-black p-3 flex items-center justify-between shadow-[4px_4px_0px_#000000] cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
+          className="mt-3 w-full bg-white p-3 flex items-center justify-between manga-panel cursor-pointer"
         >
           <div className="text-left">
             <div className="text-[10px] text-neutral-500 font-mono uppercase font-bold">继续上次</div>
@@ -95,29 +95,31 @@ export function LevelSelectScreen({
               whileHover={selectable ? { y: -2 } : undefined}
               whileTap={selectable ? { y: 2 } : undefined}
               onClick={selectable ? () => onSelectLevel(idx) : undefined}
-              className={`w-full p-3.5 border-[3px] text-left relative transition-all rounded-none flex items-center justify-between select-none ${
+              className={`w-full p-4 text-left relative transition-all rounded-none flex items-center justify-between select-none ${
                 isLocked
-                  ? 'border-stone-300 bg-stone-100/75 text-zinc-400 cursor-not-allowed shadow-none'
+                  ? 'border-3 border-neutral-300 bg-neutral-100 text-zinc-400 cursor-not-allowed'
                   : selected
-                    ? 'border-black bg-white shadow-[4px_4px_0px_#000000] cursor-pointer hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none'
-                    : 'border-neutral-300 bg-white hover:bg-stone-50 shadow-[2px_2px_0px_rgba(0,0,0,0.15)] hover:border-black cursor-pointer'
+                    ? 'manga-panel-active bg-white cursor-pointer'
+                    : 'manga-panel bg-white hover:bg-neutral-50 cursor-pointer'
               }`}
+              style={isLocked ? {borderWidth:'3px', borderStyle:'solid', borderColor:'#d4d4d4'} : undefined}
             >
-              <div className="flex-1 min-w-0 pr-2">
+              {isLocked && <div className="absolute inset-0 hatching pointer-events-none opacity-50"></div>}
+              <div className="flex-1 min-w-0 pr-2 relative z-10">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className={`text-[9px] font-mono px-2 py-0.5 border leading-none font-bold ${
-                    isLocked ? 'bg-stone-200 border-stone-300 text-zinc-400' : 'bg-red-50 text-red-600 border-red-300'
+                  <span className={`text-[9px] font-mono px-2 py-0.5 border-2 border-black leading-none font-bold ${
+                    isLocked ? 'bg-neutral-200 text-zinc-400' : 'bg-black text-yellow-400'
                   }`}>STAGE 0{level.id}</span>
-                  {completed && <span className="text-[9px] bg-emerald-500 text-white font-mono px-1 py-0.5 border border-emerald-600 font-black uppercase">已通关</span>}
-                  {isNextPlayable && !completed && <span className="text-[9px] bg-red-600 text-white font-mono px-1 py-0.5 border border-red-700 font-black uppercase animate-pulse">当前关</span>}
+                  {completed && <span className="text-[9px] bg-emerald-500 text-white font-mono px-1 py-0.5 border-2 border-black font-black uppercase">已通关</span>}
+                  {isNextPlayable && !completed && <span className="text-[9px] bg-red-600 text-white font-mono px-1 py-0.5 border-2 border-black font-black uppercase animate-pulse">当前关</span>}
                 </div>
                 <h3 className={`font-display font-black text-sm leading-tight ${isLocked ? 'text-zinc-400' : 'text-black'}`}>{level.title}</h3>
                 <p className={`text-[10px] font-mono mt-0.5 ${isLocked ? 'text-zinc-400' : 'text-neutral-500'}`}>时限 {level.baseTime}s</p>
               </div>
-              <div className="shrink-0 flex items-center justify-center ml-2">
+              <div className="shrink-0 flex items-center justify-center ml-2 relative z-10">
                 {isLocked
-                  ? <div className="p-2 border-2 border-stone-300 bg-stone-200">🔒</div>
-                  : <div className="bg-black text-white p-2.5 border-2 border-black shadow-[2px_2px_0px_#22c55e]">→</div>
+                  ? <div className="p-2 border-2 border-neutral-300 bg-neutral-200">🔒</div>
+                  : <div className="bg-black text-white p-2.5 border-2 border-black shadow-[2px_2px_0px_0px_#22c55e]">→</div>
                 }
               </div>
             </motion.div>

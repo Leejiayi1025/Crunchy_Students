@@ -216,30 +216,29 @@ export default function App() {
   };
 
   return (
-    <div className="h-[100svh] bg-slate-800 flex items-center justify-center p-0 sm:p-4 select-none text-black" style={{backgroundImage:'radial-gradient(#334155 1px, transparent 1px)', backgroundSize:'24px 24px'}}>
+    <div className="h-[100svh] bg-[#1b1b1b] flex items-center justify-center p-0 sm:p-4 select-none text-black" style={{backgroundImage:'radial-gradient(#333 1px, transparent 1px)', backgroundSize:'24px 24px'}}>
 
-      <div className="w-full max-w-md bg-[#faf8f5] border-0 sm:border-[6px] border-slate-800 shadow-none sm:shadow-[12px_12px_0px_#1e293b] rounded-none relative overflow-hidden flex flex-col h-[100svh] sm:h-[calc(100svh-2rem)] justify-between font-sans transition-all duration-300">
+      <div className="w-full max-w-md bg-[#f9f9f9] border-0 sm:border-4 border-black shadow-none sm:shadow-[8px_8px_0px_0px_#000] rounded-none relative overflow-hidden flex flex-col h-[100svh] sm:h-[calc(100svh-2rem)] justify-between font-sans transition-all duration-300">
 
-        {/* ── CRISP OS Header ── */}
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 text-white px-4 py-1.5 flex justify-between items-center text-[10px] tracking-widest font-mono select-none uppercase border-b-2 border-slate-600 shrink-0">
+        {/* ── Manga Style Header ── */}
+        <div className="bg-white px-4 py-2 flex justify-between items-center text-[10px] tracking-widest font-mono select-none uppercase border-b-4 border-black shrink-0">
           <div className="flex items-center gap-2 font-bold">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-            <span className="text-rose-400 font-black">CRISP OS v1.6</span>
+            <span className="font-display font-black text-sm tracking-tight">脆皮大学生</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-slate-400">5G ★</span>
+            <span className="font-label-sm text-label-sm uppercase bg-black text-white px-2 py-0.5">v1.6</span>
             {isInLevelFlow && (
               <button
                 type="button"
                 disabled={showEndExperience}
                 onClick={handleEndExperience}
-                className={`px-2 py-0.5 border-2 rounded-none font-black tracking-widest transition-all ${
+                className={`px-2 py-0.5 border-2 border-black rounded-none font-black tracking-widest transition-all cursor-pointer ${
                   showEndExperience
-                    ? 'bg-slate-800/40 text-slate-500 border-slate-700 cursor-not-allowed'
-                    : 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 border-rose-400/50 cursor-pointer'
+                    ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                    : 'bg-red-100 hover:bg-red-200 text-red-700 active:translate-y-0.5 active:shadow-none'
                 }`}
               >
-                结束体验
+                结束
               </button>
             )}
           </div>

@@ -172,11 +172,11 @@ export function ClearScreen({ stats, isLastLevel, onRestart, onNextLevel, onHome
   const analysis = analyze();
 
   return (
-    <div className="flex-1 flex flex-col p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-black bg-stone-50 select-none overflow-y-auto custom-scrollbar gap-2">
+    <div className="flex-1 flex flex-col p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-black bg-[#f9f9f9] select-none overflow-y-auto custom-scrollbar gap-2">
 
       {/* Header */}
       <div className="text-center pt-1">
-        <span className="inline-block bg-neutral-900 text-yellow-400 text-[8px] font-mono px-2 py-0.5 uppercase tracking-widest border border-black mb-1 shadow-[1px_1px_0px_#000]">[EXAMINATION REPORT]</span>
+        <span className="inline-block bg-black text-yellow-400 text-[8px] font-mono px-2 py-0.5 uppercase tracking-widest border-2 border-black mb-1">[EXAMINATION REPORT]</span>
         <h2 className="text-xl font-display font-black mt-1 leading-none flex flex-col">
           <span className="text-emerald-700 font-extrabold text-xl">🎓 逆风突围成功！</span>
         </h2>
@@ -185,14 +185,14 @@ export function ClearScreen({ stats, isLastLevel, onRestart, onNextLevel, onHome
         </div>
       </div>
 
-      {/* Stats Card */}
-      <div className="my-1.5 border-[3px] border-black p-3 bg-white shadow-[4px_4px_0px_#000000] relative space-y-2.5 rounded-none">
+      {/* Stats Card - Manga Panel */}
+      <div className="my-1.5 manga-panel-active p-3 bg-white relative space-y-2.5">
         <div className="absolute top-2 right-2 bg-red-50 text-red-600 p-1 border-2 border-dashed border-red-500 transform rotate-6 scale-90">
           <span className="text-[8px] font-mono block font-black uppercase tracking-tight">APPROVED</span>
         </div>
 
         {/* Stars */}
-        <div className="flex items-center gap-1.5 justify-center py-1 bg-stone-50/50 border border-stone-200">
+        <div className="flex items-center gap-1.5 justify-center py-1 bg-neutral-50 border-2 border-black">
           {[1, 2, 3].map((i) => (
             <motion.span
               key={i}
@@ -209,14 +209,14 @@ export function ClearScreen({ stats, isLastLevel, onRestart, onNextLevel, onHome
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
-          <div className="border-2 border-black p-1.5 bg-stone-50"><span className="text-[8px] text-zinc-400 block font-bold">用时</span><span className="font-bold text-black text-xs">{stats.timeUsed}s</span></div>
-          <div className="border-2 border-black p-1.5 bg-stone-50"><span className="text-[8px] text-zinc-400 block font-bold">剩余</span><span className="font-bold text-black text-xs">{stats.timeRemainingBeforePenalty}s</span></div>
-          <div className="border-2 border-black p-1.5 bg-stone-50"><span className="text-[8px] text-zinc-400 block font-bold">答错</span><span className="font-bold text-black text-xs">{stats.errorsMade}</span></div>
-          <div className="border-2 border-black p-1.5 bg-stone-50"><span className="text-[8px] text-zinc-400 block font-bold">峰压</span><span className={`font-black text-xs ${stats.maxStress >= 75 ? 'text-red-600' : 'text-stone-900'}`}>{stats.maxStress}%</span></div>
+          <div className="border-2 border-black p-1.5 bg-neutral-50"><span className="text-[8px] text-zinc-400 block font-bold">用时</span><span className="font-bold text-black text-xs">{stats.timeUsed}s</span></div>
+          <div className="border-2 border-black p-1.5 bg-neutral-50"><span className="text-[8px] text-zinc-400 block font-bold">剩余</span><span className="font-bold text-black text-xs">{stats.timeRemainingBeforePenalty}s</span></div>
+          <div className="border-2 border-black p-1.5 bg-neutral-50"><span className="text-[8px] text-zinc-400 block font-bold">答错</span><span className="font-bold text-black text-xs">{stats.errorsMade}</span></div>
+          <div className="border-2 border-black p-1.5 bg-neutral-50"><span className="text-[8px] text-zinc-400 block font-bold">峰压</span><span className={`font-black text-xs ${stats.maxStress >= 75 ? 'text-red-600' : 'text-stone-900'}`}>{stats.maxStress}%</span></div>
         </div>
       </div>
 
-      <div className="mb-2 border-[3px] border-black p-3 bg-white shadow-[4px_4px_0px_#000000] rounded-none">
+      <div className="mb-2 manga-panel p-3 bg-white">
         <div className="flex items-center justify-between border-b-2 border-black pb-1 mb-2">
           <div className="text-xs font-mono font-black tracking-widest uppercase">DATA SUMMARY</div>
           <button
@@ -242,36 +242,37 @@ export function ClearScreen({ stats, isLastLevel, onRestart, onNextLevel, onHome
         <TimelineChart timeline={stats.timeline} maxStressThreshold={stats.maxStress} />
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-stone-50 border-t-2 border-black">
+      <div className="sticky bottom-0 left-0 right-0 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-[#f9f9f9] border-t-4 border-black">
         <div className="grid grid-cols-3 gap-2">
           <motion.button
             id="btn-play-level-home"
             whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onHome}
-            className="bg-stone-100 hover:bg-stone-200 text-black border-2 border-black font-display font-black py-2.5 px-2 text-xs tracking-wider rounded-none shadow-[3px_3px_0px_#000000] flex items-center justify-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
+            className="bg-neutral-100 hover:bg-neutral-200 text-black font-display font-black py-2.5 px-2 text-xs tracking-wider manga-btn cursor-pointer flex items-center justify-center gap-1.5"
           >
             <span>🏠 首页</span>
           </motion.button>
           <motion.button
             id="btn-play-level-retry"
             whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onRestart}
-            className="bg-black hover:bg-neutral-900 text-white border-2 border-black font-display font-black py-2.5 px-2 text-xs tracking-wider rounded-none shadow-[3px_3px_0px_#10b981] flex items-center justify-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
+            className="bg-black hover:bg-neutral-900 text-white font-display font-black py-2.5 px-2 text-xs tracking-wider cursor-pointer flex items-center justify-center gap-1.5 border-3 border-black rounded-none"
+            style={{boxShadow:'4px 4px 0px 0px #10b981'}}
           >
             <span>🔄 重来</span>
           </motion.button>
           <motion.button
             id="btn-play-level-next"
             whileHover={{ scale: isLastLevel ? 1 : 1.01 }}
-            whileTap={{ scale: isLastLevel ? 1 : 0.98 }}
+            whileTap={{ scale: isLastLevel ? 1 : 0.95 }}
             disabled={isLastLevel}
             onClick={onNextLevel}
-            className={`border-2 border-black font-display font-black py-2.5 px-2 text-xs tracking-wider rounded-none shadow-[3px_3px_0px_#000000] flex items-center justify-center gap-1.5 active:translate-y-0.5 active:shadow-none transition-all ${
+            className={`font-display font-black py-2.5 px-2 text-xs tracking-wider flex items-center justify-center gap-1.5 ${
               isLastLevel
-                ? 'bg-stone-100 text-stone-400 border-stone-300 shadow-none cursor-not-allowed'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer'
+                ? 'bg-neutral-100 text-neutral-400 border-2 border-neutral-300 cursor-not-allowed'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white manga-btn cursor-pointer'
             }`}
           >
             <span>🚀 下一关</span>

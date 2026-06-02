@@ -38,10 +38,10 @@ export function LevelIntroScreen({ level, talent, onEnterGame, onBack }: LevelIn
   })();
 
   return (
-    <div className="flex-1 flex flex-col justify-between p-5 bg-stone-50 select-none">
+    <div className="flex-1 flex flex-col justify-between p-5 bg-[#f9f9f9] select-none">
 
       {/* Header */}
-      <div className="border-b-[3px] border-black pb-2">
+      <div className="border-b-4 border-black pb-2">
         <button
           id="btn-level-intro-back"
           onClick={onBack}
@@ -55,37 +55,44 @@ export function LevelIntroScreen({ level, talent, onEnterGame, onBack }: LevelIn
 
       {/* Content */}
       <div className="flex-1 min-h-0 py-3 space-y-3 overflow-y-auto my-1 pr-1">
-        <div className="border-[3px] border-black p-3 bg-red-50 shadow-[5px_5px_0px_rgba(0,0,0,1)] rounded-none">
-          <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-1 mb-2">
-            <div className="text-[10px] font-mono font-black tracking-widest uppercase text-red-700">核心规则</div>
-            <div className="text-[10px] font-mono font-black px-2 py-0.5 border-2 border-black bg-white">{shortName}</div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex gap-2 text-[11px] leading-relaxed select-none">
-              <span className="bg-black text-white text-[9px] font-mono font-black h-4 w-4 shrink-0 flex items-center justify-center border border-black">!</span>
-              <span className="text-stone-900 font-black">{level.instructions}</span>
+        {/* Rule Card - Manga Panel with Hatching */}
+        <div className="manga-panel p-3 bg-red-50 relative">
+          <div className="hatching absolute inset-0 pointer-events-none"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-1 mb-2">
+              <div className="text-[10px] font-mono font-black tracking-widest uppercase text-red-700">核心规则</div>
+              <div className="text-[10px] font-mono font-black px-2 py-0.5 border-2 border-black bg-white">{shortName}</div>
             </div>
-            <div className="flex gap-2 text-[11px] leading-relaxed select-none">
-              <span className="bg-black text-white text-[9px] font-mono font-black h-4 w-4 shrink-0 flex items-center justify-center border border-black">1</span>
-              <span className="text-stone-800 font-bold">{keyRule}</span>
+            <div className="space-y-2">
+              <div className="flex gap-2 text-[11px] leading-relaxed select-none">
+                <span className="bg-black text-white text-[9px] font-mono font-black h-4 w-4 shrink-0 flex items-center justify-center border border-black">!</span>
+                <span className="text-stone-900 font-black">{level.instructions}</span>
+              </div>
+              <div className="flex gap-2 text-[11px] leading-relaxed select-none">
+                <span className="bg-black text-white text-[9px] font-mono font-black h-4 w-4 shrink-0 flex items-center justify-center border border-black">1</span>
+                <span className="text-stone-800 font-bold">{keyRule}</span>
+              </div>
             </div>
           </div>
         </div>
 
         {talent && (
-          <div className="border-2 border-black p-3 bg-neutral-100/80 rounded-none">
-            <div className="text-[10px] font-mono font-black tracking-widest uppercase text-neutral-600 border-b border-stone-300 pb-1 mb-2">
-              天赋加护
-            </div>
-            <div className="text-[11px] font-mono leading-relaxed text-neutral-800">
-              <span className="font-black">{talent.name}</span>：{talent.bonusText}
+          <div className="manga-panel p-3 bg-white relative">
+            <div className="halftone absolute inset-0 pointer-events-none"></div>
+            <div className="relative z-10">
+              <div className="text-[10px] font-mono font-black tracking-widest uppercase text-neutral-600 border-b-2 border-black pb-1 mb-2">
+                天赋加护
+              </div>
+              <div className="text-[11px] font-mono leading-relaxed text-neutral-800">
+                <span className="font-black">{talent.name}</span>：{talent.bonusText}
+              </div>
             </div>
           </div>
         )}
       </div>
 
       {/* CTA */}
-      <div className="space-y-2 pt-2 border-t border-dashed border-stone-300">
+      <div className="space-y-2 pt-2 border-t border-dashed border-neutral-300">
         <div className="text-[10px] font-mono font-black tracking-widest uppercase text-neutral-600">
           选择难度（点击即开始）
         </div>
@@ -97,15 +104,15 @@ export function LevelIntroScreen({ level, talent, onEnterGame, onBack }: LevelIn
                 key={d}
                 type="button"
                 whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => onEnterGame(d)}
-                className={`border-2 border-black rounded-none p-2.5 text-left shadow-[3px_3px_0px_#000000] transition-all ${
+                className={`p-2.5 text-left manga-btn cursor-pointer ${
                   d === 'HELL'
                     ? 'bg-red-50 hover:bg-red-100'
                     : d === 'HARD'
                     ? 'bg-amber-50 hover:bg-amber-100'
                     : d === 'MEDIUM'
-                    ? 'bg-white hover:bg-stone-50'
+                    ? 'bg-white hover:bg-neutral-50'
                     : 'bg-emerald-50 hover:bg-emerald-100'
                 }`}
               >
@@ -125,7 +132,7 @@ export function LevelIntroScreen({ level, talent, onEnterGame, onBack }: LevelIn
         </div>
         <button
           onClick={onBack}
-          className="w-full bg-stone-100 hover:bg-stone-200 border border-black font-semibold text-black py-2 px-4 text-[10px] font-mono tracking-wider rounded-none cursor-pointer transition-colors"
+          className="w-full bg-neutral-100 hover:bg-neutral-200 border-2 border-black font-semibold text-black py-2 px-4 text-[10px] font-mono tracking-wider rounded-none cursor-pointer transition-colors shadow-[2px_2px_0px_0px_black] active:translate-y-0.5 active:shadow-none"
         >
           返回考场选单
         </button>

@@ -107,3 +107,83 @@ body {
   .text-2xl { font-size: 1.5rem !important; }
   .text-3xl { font-size: 1.875rem !important; }
 }
+
+/* ── 漫画新野蛮主义纹理系统 ── */
+
+/* 网点纹理 */
+.halftone {
+  background-image: radial-gradient(circle, #000 10%, transparent 10%);
+  background-size: 4px 4px;
+  opacity: 0.08;
+}
+
+/* 斜线纹理 */
+.hatching {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(0, 0, 0, 0.08) 5px,
+    rgba(0, 0, 0, 0.08) 6px
+  );
+}
+
+/* 漫画面板 - 标准态 */
+.manga-panel {
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0px 0px #000;
+  border-radius: 0;
+}
+
+/* 漫画面板 - 激活/选中态 */
+.manga-panel-active {
+  border: 4px solid #000;
+  box-shadow: 8px 8px 0px 0px #000;
+  transform: translate(-2px, -2px);
+  border-radius: 0;
+}
+
+/* 浮动动画 */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+.float-animation { animation: float 3s ease-in-out infinite; }
+
+/* 斜切背景 */
+.slant-bg {
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%);
+}
+
+/* 漫画按钮交互 */
+.manga-btn {
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0px 0px #000;
+  transition: all 0.1s ease;
+  border-radius: 0;
+}
+.manga-btn:active {
+  transform: translateY(4px);
+  box-shadow: none;
+}
+
+/* 交叉线纹理（更密集） */
+.hatching-dense {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.12) 3px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+}
+
+/* Material Design 3 表面色 */
+.md-surface { background-color: #f9f9f9; }
+.md-surface-dim { background-color: #dadada; }
+.md-surface-container { background-color: #eeeeee; }
+.md-surface-container-high { background-color: #e8e8e8; }
+.md-surface-container-highest { background-color: #e2e2e2; }
+.md-surface-container-low { background-color: #f3f3f3; }
+.md-surface-container-lowest { background-color: #ffffff; }

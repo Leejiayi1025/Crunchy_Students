@@ -11,7 +11,10 @@ interface StartScreenProps {
 
 export function StartScreen({ onStart }: StartScreenProps) {
   return (
-    <div className="flex-1 flex flex-col justify-center p-6 relative overflow-hidden" style={{background:'linear-gradient(to bottom, #f5f5f4, #fff, #f5f5f4)'}}>
+    <div className="flex-1 flex flex-col justify-center p-6 relative overflow-hidden bg-[#f9f9f9]">
+
+      {/* Halftone overlay */}
+      <div className="absolute inset-0 halftone pointer-events-none z-0"></div>
 
       {/* Background Anime Student Illustration */}
       <div className="absolute inset-0 flex items-center justify-center z-0 opacity-[0.07] pointer-events-none">
@@ -159,18 +162,19 @@ export function StartScreen({ onStart }: StartScreenProps) {
         <p className="text-[10px] font-mono tracking-widest text-neutral-500 font-bold uppercase">Mental Resilience Simulator</p>
       </div>
 
-      {/* Hero Title */}
-      <div className="text-center my-4 relative py-3 z-10">
-        <div className="absolute inset-x-0 top-0 bottom-0 bg-red-100/50 -rotate-2 -z-10 scale-105 border-y-2 border-dashed border-black"></div>
-        <h1 className="font-display font-black tracking-tight text-black flex flex-col gap-1 transform rotate-1">
+      {/* Hero Title - Manga Panel Style */}
+      <div className="text-center my-4 relative py-4 z-10">
+        <div className="absolute inset-x-0 top-0 bottom-0 bg-white -rotate-1 -z-10 manga-panel-active"></div>
+        <div className="absolute inset-0 hatching pointer-events-none z-10"></div>
+        <h1 className="font-display font-black tracking-tight text-black flex flex-col gap-1 transform rotate-1 relative z-20">
           <span className="text-[10px] inline-block font-mono bg-black text-yellow-400 px-2.5 py-0.5 mx-auto max-w-max mb-1 uppercase tracking-wider font-extrabold shadow-[2px_2px_0px_rgba(0,0,0,1)]">极限心理防线自救</span>
           <span className="text-4xl sm:text-5xl tracking-tighter uppercase leading-none">脆皮大学生</span>
           <span className="text-red-600 font-display text-4xl sm:text-5xl block font-black mt-1 tracking-tight">《逆风指引》</span>
         </h1>
       </div>
 
-      {/* Rules Box */}
-      <div className="border-[3px] border-black p-3.5 bg-white shadow-[4px_4px_0px_rgba(0,0,0,1)] space-y-2 rounded-none relative z-10">
+      {/* Rules Box - Manga Panel */}
+      <div className="manga-panel p-3.5 bg-white space-y-2 relative z-10">
         <div className="flex items-center gap-1.5 text-red-600 font-black border-b-[2px] border-black pb-1 leading-none font-display text-xs tracking-wider">
           <span>⚠</span>
           <span>CORE METRICS / 核心规则</span>
@@ -182,14 +186,15 @@ export function StartScreen({ onStart }: StartScreenProps) {
         </ul>
       </div>
 
-      {/* Start Button */}
+      {/* Start Button - Manga Style */}
       <div className="space-y-2.5 pt-3 border-t border-dashed border-zinc-300 relative z-10 mt-4">
         <motion.button
           id="btn-play-start"
           whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.95 }}
           onClick={onStart}
-          className="w-full bg-black hover:bg-neutral-900 text-white font-display font-black py-4 px-4 text-xs tracking-widest shadow-[4px_4px_0px_#ef4444] rounded-none flex items-center justify-center gap-2 group transition-all duration-150 active:translate-y-0.5 active:shadow-none cursor-pointer"
+          className="w-full bg-black hover:bg-neutral-900 text-white font-display font-black py-4 px-4 text-xs tracking-widest manga-btn cursor-pointer flex items-center justify-center gap-2 group"
+          style={{boxShadow:'6px 6px 0px 0px #ef4444'}}
         >
           <span>抽取"脆皮天赋"进入测验</span>
           <span className="group-hover:translate-x-1 transition-transform text-emerald-400">→</span>

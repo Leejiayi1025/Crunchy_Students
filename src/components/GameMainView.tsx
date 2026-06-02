@@ -1661,16 +1661,16 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       {/* ----------------------------------------------------
           TOP NAVIGATION HEADER
           ---------------------------------------------------- */}
-      <div className="p-3 border-b-2 border-black bg-white z-10 shrink-0" style={{backgroundImage:'radial-gradient(#f1f1f1 1px, transparent 1px)', backgroundSize:'10px 10px'}}>
+      <div className="p-3 border-b-4 border-black bg-white z-10 shrink-0" style={{backgroundImage:'radial-gradient(#f1f1f1 1px, transparent 1px)', backgroundSize:'10px 10px'}}>
 
         {/* Stage & Pause */}
         <div className="flex justify-between items-center mb-2">
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[8.5px] bg-black text-yellow-400 font-mono font-black tracking-widest px-2 py-0.5 select-none rounded-none border border-black shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] uppercase">
+              <span className="text-[8.5px] bg-black text-yellow-400 font-mono font-black tracking-widest px-2 py-0.5 select-none rounded-none border-2 border-black uppercase">
                 STAGE 0{level.id}
               </span>
-              <span className="text-[8.5px] bg-sky-50 text-sky-700 font-mono font-black tracking-widest px-2 py-0.5 select-none rounded-none border border-black shadow-[1.5px_1.5px_0px_rgba(0,0,0,0.25)] uppercase">
+              <span className="text-[8.5px] bg-sky-50 text-sky-700 font-mono font-black tracking-widest px-2 py-0.5 select-none rounded-none border-2 border-black uppercase">
                 {DIFFICULTY_TEXT[difficulty]}
               </span>
             </div>
@@ -1679,12 +1679,13 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
           <button
             id="btn-play-pause-toggle"
             onClick={() => setIsPaused(!isPaused)}
-            className="bg-neutral-50 hover:bg-neutral-100 border-2 border-black text-black px-2.5 py-1 select-none text-[10px] font-mono rounded-none font-black shadow-[2px_2px_0px_#000000] cursor-pointer hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+            className="bg-neutral-50 hover:bg-neutral-100 border-2 border-black text-black px-2.5 py-1 select-none text-[10px] font-mono rounded-none font-black shadow-[2px_2px_0px_0px_#000] cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
           >
             {isPaused ? '▶ 唤睡战意' : '⏸ 暂作修整'}
           </button>
         </div>
 
+        {/* Stress Gauge */}
         {/* Stress Gauge */}
         <div className="px-2 py-1.5 bg-white">
           <div className="flex justify-between items-center text-[10px] font-mono mb-1">
@@ -1693,7 +1694,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
               {stress <= 20 && '🧘 平缓'}{stress > 20 && stress <= 40 && '😳 轻浮'}{stress > 40 && stress <= 70 && '🥵 沸热'}{stress > 70 && '☠️ 濒崩'}
             </span>
           </div>
-          <div className="w-full bg-neutral-200 h-3 border-2 border-black rounded-none relative overflow-hidden">
+          <div className="w-full bg-neutral-200 h-3 border-2 border-black relative overflow-hidden">
             <div className={`h-full transition-all duration-300 ease-out ${stress >= 71 ? 'bg-red-600 animate-pulse' : stress >= 41 ? 'bg-orange-500' : 'bg-black'}`} style={{width:`${Math.min((stress / stressMaxCap) * 100, 100)}%`}} />
           </div>
         </div>
@@ -2385,7 +2386,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
       {/* ----------------------------------------------------
           BOTTOM CONTROLLER FOOTER: ACTIONS BAR
           ---------------------------------------------------- */}
-      <div className="p-2.5 px-3 border-t-4 border-black bg-stone-200 flex justify-between items-center shadow-[0px_-2px_0px_rgba(0,0,0,1)] shrink-0 gap-2">
+      <div className="p-2.5 px-3 border-t-4 border-black bg-neutral-200 flex justify-between items-center shrink-0 gap-2">
 
         {/* Hint button */}
         <motion.button

@@ -149,7 +149,7 @@ export function FailedScreen({ stats, level, failReason, onRestart, onSkip, onHo
   const analysis = analyze();
 
   return (
-    <div className="flex-1 flex flex-col p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-black bg-red-50/50 select-none overflow-y-auto custom-scrollbar gap-2">
+    <div className="flex-1 flex flex-col p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-black bg-[#f9f9f9] select-none overflow-y-auto custom-scrollbar gap-2">
 
       {/* Header */}
       <div className="text-center pt-1">
@@ -168,13 +168,14 @@ export function FailedScreen({ stats, level, failReason, onRestart, onSkip, onHo
         </div>
       </div>
 
-      {/* Failure Card */}
-      <div className="my-1.5 border-4 border-black p-3 bg-white shadow-[5px_5px_0px_rgba(0,0,0,1)] relative rounded-none">
-        <div className="absolute -top-3.5 left-4 bg-black text-white p-1.5 border border-black shadow-[1.5px_1.5px_0px_#ef4444]">
+      {/* Failure Card - Manga Panel */}
+      <div className="my-1.5 manga-panel-active p-3 bg-white relative">
+        <div className="hatching-dense absolute inset-0 pointer-events-none"></div>
+        <div className="absolute -top-3.5 left-4 bg-black text-white p-1.5 border-2 border-black shadow-[2px_2px_0px_0px_#ef4444] z-10">
           <span className="text-red-500 animate-spin inline-block">💀</span>
         </div>
-        <h4 className="text-xs font-mono font-black text-red-600 border-b border-stone-200 pb-1 mb-2 tracking-wider uppercase">☠ 崩溃因子</h4>
-        <div className="text-xs font-mono space-y-2 text-zinc-700 leading-relaxed">
+        <h4 className="text-xs font-mono font-black text-red-600 border-b-2 border-black pb-1 mb-2 tracking-wider uppercase relative z-10">☠ 崩溃因子</h4>
+        <div className="text-xs font-mono space-y-2 text-zinc-700 leading-relaxed relative z-10">
           <p><strong className="text-black">致命短板：</strong>
             {failReason === 'TIMEOUT'
               ? <span className="text-red-600 font-bold">DDL倒计时耗尽！</span>
@@ -185,15 +186,15 @@ export function FailedScreen({ stats, level, failReason, onRestart, onSkip, onHo
             {level.failureTragedy}
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-1.5 mt-3 pt-2 border-t border-dashed border-stone-200 text-[10px] font-mono">
-          <div className="bg-stone-50 p-1.5 border border-stone-200"><span className="text-zinc-400 block text-[9px]">用时</span><span className="font-extrabold text-black">{stats.timeUsed}s</span></div>
-          <div className="bg-stone-50 p-1.5 border border-stone-200"><span className="text-zinc-400 block text-[9px]">答错</span><span className="font-extrabold text-black">{stats.errorsMade}</span></div>
-          <div className="bg-stone-50 p-1.5 border border-stone-200"><span className="text-zinc-400 block text-[9px]">峰压</span><span className="font-extrabold text-black">{stats.maxStress}%</span></div>
-          <div className="bg-stone-50 p-1.5 border border-stone-200"><span className="text-zinc-400 block text-[9px]">提示</span><span className="font-extrabold text-black">{stats.hintsUsed}</span></div>
+        <div className="grid grid-cols-2 gap-1.5 mt-3 pt-2 border-t border-dashed border-stone-200 text-[10px] font-mono relative z-10">
+          <div className="bg-neutral-50 p-1.5 border-2 border-black"><span className="text-zinc-400 block text-[9px]">用时</span><span className="font-extrabold text-black">{stats.timeUsed}s</span></div>
+          <div className="bg-neutral-50 p-1.5 border-2 border-black"><span className="text-zinc-400 block text-[9px]">答错</span><span className="font-extrabold text-black">{stats.errorsMade}</span></div>
+          <div className="bg-neutral-50 p-1.5 border-2 border-black"><span className="text-zinc-400 block text-[9px]">峰压</span><span className="font-extrabold text-black">{stats.maxStress}%</span></div>
+          <div className="bg-neutral-50 p-1.5 border-2 border-black"><span className="text-zinc-400 block text-[9px]">提示</span><span className="font-extrabold text-black">{stats.hintsUsed}</span></div>
         </div>
       </div>
 
-      <div className="mb-2 border-[3px] border-black p-3 bg-white shadow-[4px_4px_0px_#000000] rounded-none">
+      <div className="mb-2 manga-panel p-3 bg-white">
         <div className="flex items-center justify-between border-b-2 border-black pb-1 mb-2">
           <div className="text-xs font-mono font-black tracking-widest uppercase">DATA SUMMARY</div>
           <button
@@ -219,32 +220,33 @@ export function FailedScreen({ stats, level, failReason, onRestart, onSkip, onHo
         <TimelineChart timeline={stats.timeline} maxStressThreshold={stats.maxStress} />
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-red-50/50 border-t-2 border-black">
+      <div className="sticky bottom-0 left-0 right-0 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-[#f9f9f9] border-t-4 border-black">
         <div className="grid grid-cols-3 gap-2">
           <motion.button
             id="btn-play-level-home"
             whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onHome}
-            className="bg-stone-100 hover:bg-stone-200 text-black border-2 border-black font-display font-black py-2.5 px-2 text-xs tracking-wider rounded-none shadow-[3px_3px_0px_#000000] flex items-center justify-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
+            className="bg-neutral-100 hover:bg-neutral-200 text-black font-display font-black py-2.5 px-2 text-xs tracking-wider manga-btn cursor-pointer flex items-center justify-center gap-1.5"
           >
             <span>🏠 首页</span>
           </motion.button>
           <motion.button
             id="btn-play-level-fail-retry"
             whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onRestart}
-            className="bg-black hover:bg-neutral-900 text-white border-2 border-black font-display font-black py-2.5 px-2 text-xs tracking-wider rounded-none shadow-[3px_3px_0px_#dc2626] flex items-center justify-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
+            className="bg-black hover:bg-neutral-900 text-white font-display font-black py-2.5 px-2 text-xs tracking-wider cursor-pointer flex items-center justify-center gap-1.5 border-3 border-black rounded-none"
+            style={{boxShadow:'4px 4px 0px 0px #dc2626'}}
           >
             <span>🔄 重来</span>
           </motion.button>
           <motion.button
             id="btn-play-level-fail-next"
             whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onSkip}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-black font-display font-black py-2.5 px-2 text-xs tracking-wider rounded-none shadow-[3px_3px_0px_#000000] flex items-center justify-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none transition-all"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-display font-black py-2.5 px-2 text-xs tracking-wider manga-btn cursor-pointer flex items-center justify-center gap-1.5"
           >
             <span>🚀 下一关</span>
           </motion.button>
