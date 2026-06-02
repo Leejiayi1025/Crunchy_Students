@@ -1980,18 +1980,16 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
                   const borderClass = isSource ? 'border-sky-500' : isSink ? 'border-emerald-500' : isPowered ? 'border-sky-400' : 'border-black';
                   const bgClass = isPowered ? 'bg-sky-50' : 'bg-white';
                   const isCorrectRotation = rotation === cell.solvedRotation;
-                  const isLocked = isSource || isSink;
 
                   return (
                     <motion.button
                       key={idx}
                       type="button"
-                      disabled={isLocked}
                       onClick={() => handlePipeClick(idx)}
-                      whileHover={{ scale: isLocked ? 1 : 1.05 }}
-                      whileTap={{ scale: isLocked ? 1 : 0.92 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.92 }}
                       style={{ filter: isCorrectRotation ? 'drop-shadow(0 0 10px rgba(56,189,248,0.75))' : undefined }}
-                      className={`relative aspect-square flex items-center justify-center border-2 rounded-none font-mono font-black text-xl transition-all text-black active:bg-black active:text-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)] ${bgClass} ${borderClass} ${isCorrectRotation ? 'outline outline-2 outline-sky-400 outline-offset-2' : ''} ${showHint && hintTarget === idx ? 'ring-4 ring-yellow-400 ring-offset-2 animate-bounce' : ''} ${isLocked ? 'cursor-not-allowed opacity-95' : 'cursor-pointer'}`}
+                      className={`relative aspect-square flex items-center justify-center border-2 rounded-none font-mono font-black text-xl transition-all text-black active:bg-black active:text-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)] cursor-pointer ${bgClass} ${borderClass} ${isCorrectRotation ? 'outline outline-2 outline-sky-400 outline-offset-2' : ''} ${showHint && hintTarget === idx ? 'ring-4 ring-yellow-400 ring-offset-2 animate-bounce' : ''}`}
                       animate={{ rotate: rotation * 90 }}
                       transition={{ duration: 0.12, ease: 'easeOut' }}
                     >
