@@ -5,46 +5,45 @@
 
 import { GameStats, Difficulty } from './types';
 
+/** 难度对应的满分时间阈值（秒内完成即满分） */
+const TIME_THRESHOLD: Record<Difficulty, number> = {
+  EASY: 20,
+  MEDIUM: 15,
+  HARD: 20,
+  HELL: 18,
+};
+
 /** 难度分数上限 */
 const SCORE_CEILING: Record<Difficulty, number> = {
-  EASY: 85,
+  EASY: 90,
   MEDIUM: 95,
-  HARD: 100,
+  HARD: 99,
   HELL: 100,
 };
 
 /**
- * 百分制打分
+ * 百分制打分 — 基于完成速度
  *
- * 基础分60 + 表现加分最高40 = 100
- *
- * 时间分(15): 剩余时间越多越好
- * 准确分(12): 错误越少越好
- * 抗压分(8): 压力越低越好
- * 效率分(5): 提示/摸鱼越少越好
+ * 基础60分 + 速度加分最高40分
+ * 在阈值时间内完成 → 满分
+ * 超过阈值 → 按比例递减，最低60分
  */
 export function calculateScore(stats: GameStats): number {
-  const totalTime = stats.timeUsed + stats.timeRemainingBeforePenalty;
+  const timeUsed = stats.timeUsed;
+  const threshold = TIME_THRESHOLD[stats.difficulty] ?? 15;
+  const maxScore = SCORE_CEILING[stats.difficulty] ?? 95;
+  const bonusMax = maxScore - 60;
 
-  // 时间分（15分）
-  const timeScore = totalTime > 0
-    ? (stats.timeRemainingBeforePenalty / totalTime) * 15
-    : 0;
+  // 速度分：用时越少分越高
+  // ratio = threshold / timeUsed (≤1时满分，>1时按比例递减)
+  const ratio = timeUsed <= threshold
+    ? 1.0
+    : Math.max(0, threshold / timeUsed);
 
-  // 准确分（12分）：每错一次扣2分
-  const accuracyScore = Math.max(0, 12 - stats.errorsMade * 2);
+  // 用平方根曲线让高分更容易拿到
+  const bonus = Math.round(Math.sqrt(ratio) * bonusMax);
 
-  // 抗压分（8分）：压力越高扣越多
-  const stressScore = Math.max(0, 8 - stats.maxStress * 0.08);
-
-  // 效率分（5分）：提示-1，摸鱼-1
-  const efficiencyScore = Math.max(0, 5 - stats.hintsUsed * 1 - stats.slackedOffCount * 1);
-
-  const bonusScore = timeScore + accuracyScore + stressScore + efficiencyScore;
-  const rawScore = 60 + bonusScore;
-  const ceiling = SCORE_CEILING[stats.difficulty] ?? 95;
-
-  return Math.round(Math.min(ceiling, Math.max(60, rawScore)));
+  return Math.min(maxScore, 60 + bonus);
 }
 
 /** 分数等级 */
