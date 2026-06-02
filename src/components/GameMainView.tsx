@@ -313,8 +313,9 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
     setFloatingQuote(randomQuote);
 
     if (level.id === 1) {
-      // Shuffled Schulte Table Numbers 1..25
-      const numArr = Array.from({ length: 25 }, (_, i) => i + 1);
+      // Shuffled Schulte Table Numbers
+      const gridSize = difficultyCfg.schulteGridSize;
+      const numArr = Array.from({ length: gridSize }, (_, i) => i + 1);
       const shuffled = numArr.sort(() => Math.random() - 0.5);
       setSchulteNumbers(shuffled);
       setSchulteNext(1);
@@ -551,7 +552,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
 
     if (val === schulteNext) {
       // Correct number picked!
-      const isFinished = schulteNext === 25;
+      const isFinished = schulteNext === difficultyCfg.schulteGridSize;
       setIsVisualFeedback('CORRECT');
 
       // Consecutive multiplier drops
@@ -1759,7 +1760,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
               <div className="h-[1px] w-8 bg-black"></div>
               <div className="text-center">
                 <span className="block text-[10px] text-neutral-500 uppercase">当前进度</span>
-                <span className="text-lg font-mono font-bold">{String(schulteNext - 1).padStart(2, '0')} / 25</span>
+                <span className="text-lg font-mono font-bold">{String(schulteNext - 1).padStart(2, '0')} / {difficultyCfg.schulteGridSize}</span>
               </div>
             </div>
           )}

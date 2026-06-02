@@ -19,6 +19,7 @@ export const getLevelDifficultyConfig = (
   difficulty: Difficulty
 ): {
   timeLimit: number;
+  schulteGridSize: number;
   sudokuSize: number;
   sudokuBoxSize: number;
   sudokuClues: number;
@@ -38,12 +39,19 @@ export const getLevelDifficultyConfig = (
     return { sudokuSize: 9, sudokuBoxSize: 3 };
   })();
 
+  // 舒尔特方格大小：简单/中等=25(5×5)，困难/地狱=30(5×6)
+  const schulteGridSize = (() => {
+    if (levelId !== 1) return 25;
+    if (difficulty === 'HARD' || difficulty === 'HELL') return 30;
+    return 25;
+  })();
+
   const timeLimit = (() => {
     if (levelId === 1) {
       if (difficulty === 'EASY') return 40;
-      if (difficulty === 'MEDIUM') return 26;
-      if (difficulty === 'HARD') return 20;
-      return 15;
+      if (difficulty === 'MEDIUM') return 30;
+      if (difficulty === 'HARD') return 30;
+      return 20;
     }
     if (levelId === 2) {
       if (difficulty === 'EASY') return 30;
@@ -103,6 +111,7 @@ export const getLevelDifficultyConfig = (
 
   return {
     timeLimit,
+    schulteGridSize,
     sudokuSize,
     sudokuBoxSize,
     sudokuClues,
