@@ -2241,7 +2241,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
                 </div>
 
                 <div className="bg-red-50 text-red-600 p-1 border border-red-300 font-mono text-[8px] font-black animate-pulse text-center">
-                  ⚠️ 代价：-15s DDL时限
+                  ⚠️ 代价：-5s DDL时限
                 </div>
               </div>
             </motion.div>
