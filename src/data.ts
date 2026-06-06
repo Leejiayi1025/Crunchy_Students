@@ -27,53 +27,59 @@ export const getLevelDifficultyConfig = (
   reverseCommandTargetRounds: number;
   pipeScrambleMin: number;
   pipeScrambleMax: number;
+  pipeGridSize: number;
   colorTargetRounds: number;
   memoryPairsCount: number;
 } => {
   const baseTime = LEVELS.find((l) => l.id === levelId)?.baseTime ?? 60;
 
-  // 数独尺寸：简单4×4，中等4×4，困难5×5，地狱6×6
+  // 数独尺寸：简单4×4，中等5×5，困难7×7，地狱9×9
   const { sudokuSize, sudokuBoxSize } = (() => {
     if (difficulty === 'EASY') return { sudokuSize: 4, sudokuBoxSize: 2 };
-    if (difficulty === 'MEDIUM') return { sudokuSize: 4, sudokuBoxSize: 2 };
-    if (difficulty === 'HARD') return { sudokuSize: 5, sudokuBoxSize: 0 };
-    return { sudokuSize: 6, sudokuBoxSize: 0 };
+    if (difficulty === 'MEDIUM') return { sudokuSize: 5, sudokuBoxSize: 0 };
+    if (difficulty === 'HARD') return { sudokuSize: 7, sudokuBoxSize: 0 };
+    return { sudokuSize: 9, sudokuBoxSize: 3 };
   })();
 
-  // 舒尔特方格大小：简单/中等=25(5×5)，困难/地狱=30(5×6)
+  // 舒尔特方格大小：简单=20，中等=25，困难=30，地狱=35
   const schulteGridSize = (() => {
     if (levelId !== 1) return 25;
-    if (difficulty === 'HARD' || difficulty === 'HELL') return 30;
-    return 25;
+    if (difficulty === 'EASY') return 20;
+    if (difficulty === 'MEDIUM') return 25;
+    if (difficulty === 'HARD') return 30;
+    return 35;
   })();
 
   const timeLimit = (() => {
+    // 第一关：简单50s，中等50s，困难100s，地狱160s
     if (levelId === 1) {
-      if (difficulty === 'EASY') return 40;
-      if (difficulty === 'MEDIUM') return 30;
-      if (difficulty === 'HARD') return 40;
-      return 30;
+      if (difficulty === 'EASY') return 50;
+      if (difficulty === 'MEDIUM') return 50;
+      if (difficulty === 'HARD') return 100;
+      return 160;
     }
-    // 数独：需要更多思考时间
+    // 第二关（数独）：简单30s，中等50s，困难90s，地狱150s
     if (levelId === 2) {
-      if (difficulty === 'EASY') return 120;
-      if (difficulty === 'MEDIUM') return 90;
-      if (difficulty === 'HARD') return 75;
-      return 60;
+      if (difficulty === 'EASY') return 30;
+      if (difficulty === 'MEDIUM') return 50;
+      if (difficulty === 'HARD') return 90;
+      return 150;
     }
-    if (difficulty === 'EASY') return Math.round(baseTime * 1.25);
-    if (difficulty === 'MEDIUM') return baseTime;
-    if (difficulty === 'HARD') return Math.round(baseTime * 0.85);
-    return Math.round(baseTime * 0.7);
+    // 第三关开始：难度越高时间越短
+    if (difficulty === 'EASY') return 90;
+    if (difficulty === 'MEDIUM') return 80;
+    if (difficulty === 'HARD') return 70;
+    return 60;
   })();
 
   // 数独提示数：简单多给提示，地狱少给提示
   const sudokuClues = (() => {
     const cells = sudokuSize * sudokuSize;
     if (difficulty === 'EASY') return Math.min(cells, Math.max(10, Math.round(cells * 0.6)));
-    if (difficulty === 'MEDIUM') return Math.min(cells, Math.max(8, Math.round(cells * 0.5)));
-    if (difficulty === 'HARD') return Math.min(cells, Math.max(8, Math.round(cells * 0.4)));
-    return Math.min(cells, Math.max(6, Math.round(cells * 0.35)));
+    if (difficulty === 'MEDIUM') return Math.min(cells, Math.max(10, Math.round(cells * 0.5)));
+    if (difficulty === 'HARD') return Math.min(cells, Math.max(20, Math.round(cells * 0.5)));
+    // 地狱模式9×9：50%提示，约40个提示，41个空格
+    return Math.min(cells, Math.max(30, Math.round(cells * 0.5)));
   })();
 
   const oddOneOutTargetRounds = (() => {
@@ -95,6 +101,14 @@ export const getLevelDifficultyConfig = (
     if (difficulty === 'MEDIUM') return { pipeScrambleMin: 1, pipeScrambleMax: 3 };
     if (difficulty === 'HARD') return { pipeScrambleMin: 2, pipeScrambleMax: 3 };
     return { pipeScrambleMin: 3, pipeScrambleMax: 3 };
+  })();
+
+  // 管道网格大小：简单4×4，中等5×5，困难6×6，地狱8×8
+  const pipeGridSize = (() => {
+    if (difficulty === 'EASY') return 4;
+    if (difficulty === 'MEDIUM') return 5;
+    if (difficulty === 'HARD') return 6;
+    return 8;
   })();
 
   const colorTargetRounds = (() => {
@@ -121,6 +135,7 @@ export const getLevelDifficultyConfig = (
     reverseCommandTargetRounds,
     pipeScrambleMin,
     pipeScrambleMax,
+    pipeGridSize,
     colorTargetRounds,
     memoryPairsCount,
   };
@@ -695,7 +710,7 @@ export const generateSudokuPuzzle = (opts: { size: number; clues: number; boxSiz
     return out;
   };
 
-  for (let attempt = 0; attempt < 40; attempt++) {
+  for (let attempt = 0; attempt < 100; attempt++) {
     const solution = generateSolution();
     const working = solution.map((row) => [...row]) as number[][];
 

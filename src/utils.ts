@@ -5,52 +5,50 @@
 
 import { GameStats, Difficulty } from './types';
 
-/** 难度对应的满分时间阈值（秒内完成即满分） */
-const TIME_THRESHOLD: Record<Difficulty, number> = {
-  EASY: 20,
-  MEDIUM: 15,
-  HARD: 20,
-  HELL: 18,
+/** 过关分 */
+const PASS_SCORE: Record<Difficulty, number> = {
+  EASY: 60,
+  MEDIUM: 70,
+  HARD: 80,
+  HELL: 90,
 };
 
-/** 难度分数上限 */
-const SCORE_CEILING: Record<Difficulty, number> = {
-  EASY: 90,
-  MEDIUM: 95,
-  HARD: 99,
-  HELL: 100,
+/** 剩余时间系数 */
+const TIME_MULTIPLIER: Record<Difficulty, number> = {
+  EASY: 1,
+  MEDIUM: 1.2,
+  HARD: 1.4,
+  HELL: 1.6,
 };
 
 /**
- * 百分制打分 — 基于完成速度
+ * 百分制打分 — 过关分 + 剩余时间 × 系数
  *
- * 基础60分 + 速度加分最高40分
- * 在阈值时间内完成 → 满分
- * 超过阈值 → 按比例递减，最低60分
+ * 过关分：简单60，中等70，困难80，地狱90
+ * 剩余时间系数：简单×1，中等×1.2，困难×1.4，地狱×1.6
  */
 export function calculateScore(stats: GameStats): number {
-  const timeUsed = stats.timeUsed;
-  const threshold = TIME_THRESHOLD[stats.difficulty] ?? 15;
-  const maxScore = SCORE_CEILING[stats.difficulty] ?? 95;
-  const bonusMax = maxScore - 60;
+  const difficulty = stats.difficulty;
 
-  // 速度分：用时越少分越高
-  // ratio = threshold / timeUsed (≤1时满分，>1时按比例递减)
-  const ratio = timeUsed <= threshold
-    ? 1.0
-    : Math.max(0, threshold / timeUsed);
+  // 过关分
+  const passScore = PASS_SCORE[difficulty] ?? 60;
 
-  // 用平方根曲线让高分更容易拿到
-  const bonus = Math.round(Math.sqrt(ratio) * bonusMax);
+  // 剩余时间加分
+  const timeMultiplier = TIME_MULTIPLIER[difficulty] ?? 1;
+  const timeBonus = Math.round(stats.timeRemainingBeforePenalty * timeMultiplier);
 
-  return Math.min(maxScore, 60 + bonus);
+  // 计算总分
+  const totalScore = passScore + timeBonus;
+
+  // 分数上限100分，下限0分
+  return Math.max(0, Math.min(100, totalScore));
 }
 
 /** 分数等级 */
 export function getScoreGrade(score: number): { grade: string; label: string; color: string } {
-  if (score >= 90) return { grade: 'S', label: '完美', color: 'text-yellow-500' };
-  if (score >= 80) return { grade: 'A', label: '优秀', color: 'text-emerald-600' };
-  if (score >= 70) return { grade: 'B', label: '良好', color: 'text-sky-600' };
+  if (score >= 100) return { grade: 'S', label: '完美', color: 'text-yellow-500' };
+  if (score >= 90) return { grade: 'A', label: '优秀', color: 'text-emerald-600' };
+  if (score >= 80) return { grade: 'B', label: '良好', color: 'text-sky-600' };
   if (score >= 60) return { grade: 'C', label: '及格', color: 'text-orange-500' };
   return { grade: 'D', label: '挂科', color: 'text-red-600' };
 }

@@ -99,6 +99,7 @@ export function LevelIntroScreen({ level, talent, onEnterGame, onBack }: LevelIn
         <div className="grid grid-cols-2 gap-2">
           {DIFFICULTIES.map((d) => {
             const cfg = getLevelDifficultyConfig(level.id, d);
+            const timeBonus = talent ? talent.initialTimeBonus : 0;
             return (
               <motion.button
                 key={d}
@@ -118,7 +119,7 @@ export function LevelIntroScreen({ level, talent, onEnterGame, onBack }: LevelIn
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="font-display font-black text-sm text-black">{DIFFICULTY_TEXT[d]}</div>
-                  <div className="text-[10px] font-mono font-black text-zinc-700">{cfg.timeLimit}s</div>
+                  <div className="text-[10px] font-mono font-black text-zinc-700">{cfg.timeLimit}s{timeBonus !== 0 && `+${timeBonus}s`}</div>
                 </div>
                 <div className="mt-1 text-[10px] font-mono text-zinc-600 leading-tight">
                   {d === 'EASY' && '更宽松时限 / 更易上手'}

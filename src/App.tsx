@@ -144,21 +144,53 @@ export default function App() {
     writeProgress({ completedLevelIds: nextCompleted, lastLevelId: nextLastLevelId });
     setActiveStats(stats);
 
+    // 保存当前关卡成绩到 localStorage
+    try {
+      const key = `level_stats_${difficulty}_${currentLevel.id}`;
+      localStorage.setItem(key, JSON.stringify(stats));
+    } catch (e) {
+      // ignore storage errors
+    }
+
     // 检测是否为场景最后一关
     if (isLastLevelOfScene(currentLevel.id)) {
       // 收集场景内所有关卡的成绩（包括本次）
       const scene = SCENES.find((s) => s.levelIds.includes(currentLevel.id));
       if (scene) {
         const sceneLevels = getSceneLevels(scene);
-        const allStats: GameStats[] = [];
-        sceneLevels.forEach((lvl) => {
+        const allStats: GameStats[] = sceneLevels.map((lvl) => {
           if (lvl.id === currentLevel.id) {
-            allStats.push(stats);
+            return stats;
           }
-          // 其他关卡的历史成绩暂用当前 stats 占位，实际可从 localStorage 读取
+          // 从 localStorage 读取历史成绩
+          try {
+            const key = `level_stats_${difficulty}_${lvl.id}`;
+            const saved = localStorage.getItem(key);
+            if (saved) {
+              return JSON.parse(saved) as GameStats;
+            }
+          } catch (e) {
+            // ignore storage errors
+          }
+          // 如果没有历史成绩，返回默认值
+          return {
+            levelId: lvl.id,
+            talent: selectedTalent,
+            difficulty,
+            timeRemainingBeforePenalty: 0,
+            timeUsed: 0,
+            errorsMade: 0,
+            hintsUsed: 0,
+            maxStress: 0,
+            slackedOffCount: 0,
+            timeline: [],
+            triggeredSurprisesCount: 0,
+            surpriseSuccesses: 0,
+            stars: 0,
+            score: 0,
+          };
         });
-        // 简化处理：用当前 stats 作为所有关卡的代表
-        setSemesterStats(sceneLevels.map((lvl) => (lvl.id === currentLevel.id ? stats : { ...stats, levelId: lvl.id })));
+        setSemesterStats(allStats);
       }
       setGameState('SEMESTER_COMPLETE');
     } else {
@@ -180,27 +212,68 @@ export default function App() {
     setLastLevelId(null);
     writeProgress({ completedLevelIds: nextCompleted, lastLevelId: null });
 
+    // 保存跳过关卡的默认成绩到 localStorage
+    const skipStats: GameStats = {
+      levelId: currentLevel.id,
+      talent: selectedTalent,
+      difficulty,
+      timeRemainingBeforePenalty: 0,
+      timeUsed: 0,
+      errorsMade: 0,
+      hintsUsed: 0,
+      maxStress: 0,
+      slackedOffCount: 0,
+      timeline: [],
+      triggeredSurprisesCount: 0,
+      surpriseSuccesses: 0,
+      stars: 0,
+      score: 0,
+    };
+    try {
+      const key = `level_stats_${difficulty}_${currentLevel.id}`;
+      localStorage.setItem(key, JSON.stringify(skipStats));
+    } catch (e) {
+      // ignore storage errors
+    }
+
     // 检测是否跳过的是场景最后一关
     if (isLastLevelOfScene(currentLevel.id)) {
       const scene = SCENES.find((s) => s.levelIds.includes(currentLevel.id));
       if (scene) {
         const sceneLevels = getSceneLevels(scene);
-        const dummyStats: GameStats = {
-          levelId: currentLevel.id,
-          talent: selectedTalent,
-          difficulty,
-          timeRemainingBeforePenalty: 0,
-          timeUsed: 0,
-          errorsMade: 0,
-          hintsUsed: 0,
-          maxStress: 0,
-          slackedOffCount: 0,
-          timeline: [],
-          triggeredSurprisesCount: 0,
-          surpriseSuccesses: 0,
-          stars: 0,
-        };
-        setSemesterStats(sceneLevels.map((lvl) => ({ ...dummyStats, levelId: lvl.id })));
+        const allStats: GameStats[] = sceneLevels.map((lvl) => {
+          if (lvl.id === currentLevel.id) {
+            return skipStats;
+          }
+          // 从 localStorage 读取历史成绩
+          try {
+            const key = `level_stats_${difficulty}_${lvl.id}`;
+            const saved = localStorage.getItem(key);
+            if (saved) {
+              return JSON.parse(saved) as GameStats;
+            }
+          } catch (e) {
+            // ignore storage errors
+          }
+          // 如果没有历史成绩，返回默认值
+          return {
+            levelId: lvl.id,
+            talent: selectedTalent,
+            difficulty,
+            timeRemainingBeforePenalty: 0,
+            timeUsed: 0,
+            errorsMade: 0,
+            hintsUsed: 0,
+            maxStress: 0,
+            slackedOffCount: 0,
+            timeline: [],
+            triggeredSurprisesCount: 0,
+            surpriseSuccesses: 0,
+            stars: 0,
+            score: 0,
+          };
+        });
+        setSemesterStats(allStats);
       }
       setActiveStats(null);
       setGameState('SEMESTER_COMPLETE');

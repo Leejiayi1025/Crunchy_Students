@@ -1057,10 +1057,10 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
   // ----------------------------------------------------
   // Level 4: Pipe Puzzle Helpers
   // ----------------------------------------------------
-  const pipeCols = 4;
-  const pipeRows = 4;
+  const pipeCols = difficultyCfg.pipeGridSize;
+  const pipeRows = difficultyCfg.pipeGridSize;
   const pipeSourceIdx = 0;
-  const pipeSinkIdx = 15;
+  const pipeSinkIdx = pipeCols * pipeRows - 1;
 
   const shuffle = <T,>(arr: readonly T[]): T[] => {
     const out = [...arr];
@@ -1166,7 +1166,14 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
         }
       }
 
-      const extraEdgesTarget = Math.random() < 0.45 ? 0 : 1 + Math.floor(Math.random() * 2);
+      // 根据难度调整额外边数量（管道数量）
+      const extraEdgesTarget = (() => {
+        const gridSize = difficultyCfg.pipeGridSize;
+        if (gridSize <= 4) return Math.random() < 0.45 ? 0 : 1 + Math.floor(Math.random() * 2); // 4×4：0-2个
+        if (gridSize <= 5) return 1 + Math.floor(Math.random() * 3); // 5×5：1-3个
+        if (gridSize <= 6) return 2 + Math.floor(Math.random() * 3); // 6×6：2-4个
+        return 3 + Math.floor(Math.random() * 4); // 8×8：3-6个
+      })();
       let added = 0;
       for (const [a, b] of shuffle(candidates)) {
         if (added >= extraEdgesTarget) break;
@@ -1923,7 +1930,7 @@ export function GameMainView({ level, talent, difficulty, onWin, onLose, onBack,
                 <span>🔧 点击管道旋转</span>
                 <span className="text-neutral-500">连通左右两侧</span>
               </div>
-              <div className={`grid grid-cols-4 gap-1 p-2 bg-neutral-100 border-4 border-black shadow-[4px_4px_0px_#000000] rounded-none transition-all duration-300 ${shakeClass}`}>
+              <div className={`grid gap-1 p-2 bg-neutral-100 border-4 border-black shadow-[4px_4px_0px_#000000] rounded-none transition-all duration-300 ${shakeClass}`} style={{ gridTemplateColumns: `repeat(${pipeCols}, minmax(0, 1fr))` }}>
                 {pipeCells.map((cell, idx) => {
                   if (cell.type === 'empty') {
                     return <div key={idx} className="aspect-square bg-neutral-200 border-2 border-neutral-300" />;
